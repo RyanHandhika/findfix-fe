@@ -17,11 +17,9 @@ If you are developing a production application, we recommend using TypeScript wi
 
 ## Grouping Tokens Github
 
---------------------------------------------------------------------------------------|
-| Branch name | Details                                 | Use                         |
---------------------------------------------------------------------------------------|
-| feat        | Feature I'm adding or expanding         | feat/onboarding             |
-| bug         | Bug fix or expirement                   | bug/onboarding              |
-| junk        | Throwaway branch created to experiment  | junk/onboarding             |
-| development | Main branch for feat, bug, junk         | development/onboardingFinal |
---------------------------------------------------------------------------------------|
+| Branch Name   | Details                                           | Example Usage                 |
+| ------------- | ------------------------------------------------- | ----------------------------- |
+| `feat`        | Feature yang sedang ditambahkan atau dikembangkan | `feat/onboarding`             |
+| `bug`         | Perbaikan bug atau eksperimen kecil               | `bug/onboarding`              |
+| `junk`        | Branch percobaan / testing sementara              | `junk/onboarding`             |
+| `development` | Branch utama untuk pengembangan                   | `development/onboardingFinal` |
