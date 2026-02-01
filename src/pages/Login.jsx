@@ -9,7 +9,7 @@ const Login = () => {
         <Link to="/">
           <button className="text-xl flex items-center">
             <MdArrowBackIos />
-            <h1 className="text-lg ml-3 font-semibold">Sign in</h1>
+            <h1 className="text-lg ml-3 font-semibold">Sign in test</h1>
           </button>
         </Link>
       </div>
