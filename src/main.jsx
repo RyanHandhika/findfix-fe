@@ -11,6 +11,7 @@ import LoginPage from "./pages/Login";
 import ForgotPasswordPage from "./pages/ForgotPassword";
 import ResetPasswordPage from "./pages/ResetPassword";
 import Home from "./pages/Home.jsx";
+import Laporan from "./pages/Laporan.jsx";
 
 createRoot(document.getElementById("root")).render(
   <BrowserRouter>
@@ -20,6 +21,7 @@ createRoot(document.getElementById("root")).render(
       <Route path="forgot-password" element={<ForgotPasswordPage />} />
       <Route path="reset-password" element={<ResetPasswordPage />} />
       <Route path="home" element={<Home />} />
+      <Route path="laporan" element={<Laporan />} />
     </Routes>
   </BrowserRouter>,
 );

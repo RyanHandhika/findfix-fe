@@ -12,10 +12,12 @@ const Onboarding = () => {
         />
       </div>
 
-      <h2 className="text-3xl font-bold text-indigo-600">Temukan & Laporkan</h2>
+      <h2 className="text-3xl font-bold text-indigo-600 text-shadow-lg">
+        Temukan & Laporkan
+      </h2>
       <h3 className="text-xl font-semibold mb-3">Barang Hilang di Kampus</h3>
 
-      <p className="text-gray-500 mb-6">
+      <p className="text-gray-500 mb-6 ">
         Temukan barang hilang dengan cepat dan mudah di lingkungan kampus.
       </p>
 
