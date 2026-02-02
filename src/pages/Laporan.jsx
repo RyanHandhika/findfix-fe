@@ -1,5 +1,5 @@
 import Header from "../components/Header";
-import ReportCard from "../components/ReportCard";
+import ReportItem from "../components/ReportItem";
 import Navbar from "../components/Navbar";
 
 const Laporan = () => {
@@ -10,94 +10,97 @@ const Laporan = () => {
     { count: 200, label: "Tersimpan" },
   ];
 
-  const lostReports = [
-    {
-      id: 1,
-      name: "Wade Waren",
-      role: "Mahasiswa",
-      time: "2 Jam Lalu",
-      itemName: "Charger Laptop",
-      location: "Gedung Baru lt 9",
-      description: "Charger Berwarna Pink Dengan Stiker Hello Kitty",
-      status: "HILANG",
-      statusColor: "red",
-      borderColor: "#FF4444",
-    },
-  ];
+  const reports = [
+  {
+    id: 1,
+    title: "Casan Laptop",
+    image: "charger",
+    location: "Gedung baru - Lt5",
+    date: "02/01/2025",
+    status: "DITEMUKAN",
+  },
+  {
+    id: 2,
+    title: "Casan Laptop",
+    image: "charger",
+    location: "Gedung baru - Lt5",
+    date: "02/01/2025",
+    status: "Hilang",
+  },
+];
 
-  const foundReports = [
-    {
-      id: 2,
-      name: "Satpam Kampus",
-      role: "Staff",
-      time: "15 Menit lalu",
-      itemName: "Kunci Motor Honda",
-      location: "Parkiran B2",
-      description:
-        "Kunci Motor Dengan Gantungan Kunci Bentuk Bola Ditemukan Dekat Pos",
-      status: "DITEMUKAN",
-      statusColor: "green",
-      borderColor: "#4CAF50",
-    },
-  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#4A3AFF] to-[#5B4CFF] pb-20">
+    <div className="min-h-screen bg-[#3F35D3]">
       <Header />
 
-      <div className="bg-gray-50 rounded-t-[30px] mt-5 p-5 min-h-screen">
-        <div className="mb-6">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">
-            Temukan barang hilang anda disini{" "}
-          </h2>
-        </div>
+      {/* White Container */}
+      <div className="bg-[#F3F7FF] rounded-t-[32px] mt-6 px-4 pt-6 pb-28">
+        <h2 className="text-lg font-semibold mb-5">
+          Temukan barang hilang anda disini
+        </h2>
 
-        <div className="bg-white rounded-2xl p-5 shadow-md mb-6">
-          <h3 className="text-base font-semibold text-gray-800 mb-4">
-            Jumlah Laporan
-          </h3>
-          <div className="grid grid-cols-4 gap-4">
-            {stats.map((stat, index) => (
+        {/* Statistik */}
+        <div className="bg-white rounded-2xl p-4 mb-4">
+          <div className="grid grid-cols-4 gap-3">
+            {stats.map((s, i) => (
               <div
-                key={index}
-                className="bg-gray-50 rounded-xl p-4 text-center"
+                key={i}
+                className="bg-[#F7F7F7] rounded-xl py-3 text-center"
               >
-                <div className="text-2xl font-bold text-gray-800 mb-1">
-                  {stat.count}
-                </div>
-                <div className="text-xs text-gray-600">{stat.label}</div>
+                <p className="text-lg font-semibold text-gray-700">
+                  {s.count}
+                </p>
+                <p className="text-[11px] text-gray-500">{s.label}</p>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="mb-6">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-base font-semibold text-gray-800">
-              Laporan Kehilangan Terbaru
-            </h3>
-            <a href="#" className="text-[#4A3AFF] text-sm font-medium">
-              View all →
-            </a>
-          </div>
-          {lostReports.map((report) => (
-            <ReportCard key={report.id} {...report} />
+        {/* Search */}
+        <div className="relative mb-4">
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg">
+            ⭕
+          </span>
+          <input
+            placeholder="Search"
+            className="w-full bg-white rounded-full py-3 pl-12 pr-4 text-sm outline-none"
+          />
+        </div>
+
+        {/* Filter */}
+        <div className="flex gap-3 mb-6 overflow-x-auto">
+          <button className="w-10 h-10 rounded-full border bg-white flex items-center justify-center">
+            ☰
+          </button>
+
+          <button className="px-4 py-2 rounded-full border-2 border-blue-500 text-blue-600 text-sm font-medium bg-white">
+            Smart Building ⌄
+          </button>
+
+          <button className="px-4 py-2 rounded-full border text-sm bg-white">
+            Elektronik ⌄
+          </button>
+
+          <button className="px-4 py-2 rounded-full border text-sm bg-white">
+            Hari ini ⌄
+          </button>
+        </div>
+
+        {/* Cards */}
+        <div className="space-y-4">
+          {reports.map((item) => (
+            <ReportItem
+              key={item.id}
+              title={item.title}
+              image={item.image}
+              location={item.location}
+              date={item.date}
+              status={item.status}
+            />
           ))}
         </div>
 
-        <div className="mb-6">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-base font-semibold text-gray-800">
-              Barang Ditemukan Terbaru
-            </h3>
-            <a href="#" className="text-[#4A3AFF] text-sm font-medium">
-              View all →
-            </a>
-          </div>
-          {foundReports.map((report) => (
-            <ReportCard key={report.id} {...report} />
-          ))}
-        </div>
       </div>
 
       <Navbar />
