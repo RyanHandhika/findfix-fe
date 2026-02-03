@@ -12,6 +12,7 @@ import ForgotPasswordPage from "./pages/ForgotPassword";
 import ResetPasswordPage from "./pages/ResetPassword";
 import Home from "./pages/Home.jsx";
 import Laporan from "./pages/Laporan.jsx";
+import DetailLaporal from "./pages/DetailLaporan.jsx";
 
 createRoot(document.getElementById("root")).render(
   <BrowserRouter>
@@ -22,6 +23,7 @@ createRoot(document.getElementById("root")).render(
       <Route path="reset-password" element={<ResetPasswordPage />} />
       <Route path="home" element={<Home />} />
       <Route path="laporan" element={<Laporan />} />
+      <Route path="detail-laporan" element={<DetailLaporal />} />
     </Routes>
   </BrowserRouter>,
 );
