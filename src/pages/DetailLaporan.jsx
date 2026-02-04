@@ -1,14 +1,15 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import Header from "../components/Header";
 import Navbar from "../components/Navbar";
 
 const DetailLaporan = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   
-  // Data hardcoded untuk sementara
-  const reportData = {
+  // Ambil data dari location.state atau gunakan data default
+  const reportData = location.state || {
     title: "Casan Laptop (hilang)",
     images: [
       "https://via.placeholder.com/400x300",
@@ -41,7 +42,6 @@ const DetailLaporan = () => {
     );
   };
 
-  // Fix untuk tombol back - langsung ke /laporan
   const handleBack = () => {
     navigate('/laporan');
   };
