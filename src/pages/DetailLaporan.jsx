@@ -1,265 +1,216 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
-import ReportItem from "../components/ReportItem";
 import Navbar from "../components/Navbar";
 
-const Laporan = () => {
-  const [selectedFilters, setSelectedFilters] = useState({
-    location: "Smart Building",
-    category: "Elektronik",
-    time: "Hari ini"
-  });
+const DetailLaporan = () => {
+  const navigate = useNavigate();
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   
-  const [showLocationFilter, setShowLocationFilter] = useState(false);
-  const [showCategoryFilter, setShowCategoryFilter] = useState(false);
-  const [showTimeFilter, setShowTimeFilter] = useState(false);
-
-  const stats = [
-    { count: 200, label: "Hilang" },
-    { count: 200, label: "Ditemukan" },
-    { count: 200, label: "Dikembalikan" },
-    { count: 200, label: "Tersimpan" },
-  ];
-
-  const reports = [
-    {
-      id: 1,
-      title: "Casan Laptop",
-      image: "/api/placeholder/150/150",
-      location: "Gedung baru - Lt5",
-      date: "02/01/2025",
-      status: "DITEMUKAN",
-      category: "Elektronik",
-      building: "Smart building"
+  // Data hardcoded untuk sementara
+  const reportData = {
+    title: "Casan Laptop (hilang)",
+    images: [
+      "https://via.placeholder.com/400x300",
+      "https://via.placeholder.com/400x300",
+      "https://via.placeholder.com/400x300"
+    ],
+    type: "Elektronik",
+    date: "02/01/2025",
+    location: "Gedung Baru - Lt5",
+    status: "HILANG",
+    finder: {
+      name: "Kasim Ahmad",
+      role: "Mahasiswa",
+      avatar: "https://via.placeholder.com/50"
     },
-    {
-      id: 2,
-      title: "Casan Laptop",
-      image: "/api/placeholder/150/150",
-      location: "Gedung baru - Lt5",
-      date: "02/01/2025",
-      status: "Hilang",
-      category: "Elektronik",
-      building: "Smart building"
-    },
-  ];
+    description: "Saya kehilangan casan laptop Lenovo di Lt 5 gedung baru, ketika saya sedang mengerjakan tugas kelompok disana, ciri cirinya: berwarna hitam, dililit dengan karet, sedikit besar dan berat casannya"
+  };
 
-  const locationOptions = [
-    "Smart Building",
-    "Kampus Dago",
-    "Kampus Miracle",
-    "Area Parkiran Smart Building",
-    "Area Parkiran Kampus Dago",
-    "Lainnya"
-  ];
+  const isFound = reportData.status === "DITEMUKAN";
 
-  const categoryOptions = [
-    "Elektronik",
-    "Dokumen dan Identitas",
-    "Tas dan Dompet",
-    "Kendaraan dan Perlengkapannya",
-    "Pakaian dan Aksesoris",
-    "Lainnya"
-  ];
+  const nextImage = () => {
+    setCurrentImageIndex((prev) => 
+      prev === reportData.images.length - 1 ? 0 : prev + 1
+    );
+  };
 
-  const timeOptions = [
-    "Hari Ini",
-    "3 Hari Terakhir",
-    "7 Hari Terakhir",
-    "30 Hari Terakhir",
-    "Semua Waktu"
-  ];
+  const prevImage = () => {
+    setCurrentImageIndex((prev) => 
+      prev === 0 ? reportData.images.length - 1 : prev - 1
+    );
+  };
+
+  // Fix untuk tombol back - langsung ke /laporan
+  const handleBack = () => {
+    navigate('/laporan');
+  };
 
   return (
     <div className="min-h-screen bg-[#3F35D3]">
+      {/* Header */}
       <Header />
-      
-      {/* White Container */}
+
+      {/* Content Container */}
       <div className="bg-[#F3F7FF] rounded-t-[32px] mt-6 px-4 pt-6 pb-28 min-h-screen">
-        <h2 className="text-[17px] font-semibold mb-5 text-black">
-          Temukan barang hilang anda disini
-        </h2>
-
-        {/* Statistik */}
-        <div className="grid grid-cols-4 gap-3 mb-4">
-          {stats.map((s, i) => (
-            <div
-              key={i}
-              className="bg-[#F5F5F5] rounded-xl py-3 text-center"
-            >
-              <p className="text-[20px] font-bold text-gray-800">
-                {s.count}
-              </p>
-              <p className="text-[10px] text-gray-500 mt-1">{s.label}</p>
-            </div>
-          ))}
+        {/* Back Button & Title */}
+        <div className="flex items-center gap-4 mb-6">
+          <button 
+            onClick={handleBack}
+            className="w-12 h-12 bg-[#3F35D3] rounded-full flex items-center justify-center hover:bg-[#342CB8] transition-colors"
+          >
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <h1 className="text-xl font-bold text-black">Detail Laporan</h1>
         </div>
 
-        {/* Search */}
-        <div className="relative mb-4">
-          <svg 
-            className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300"
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
-          >
-            <path 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              strokeWidth={2} 
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" 
-            />
-          </svg>
-          <input
-            placeholder="Search"
-            className="w-full bg-white rounded-full py-3 pl-12 pr-4 text-sm outline-none text-gray-400"
+        {/* Image Carousel */}
+        <div className="relative mb-6 rounded-2xl overflow-hidden bg-gray-200">
+          <img 
+            src={reportData.images[currentImageIndex]}
+            alt="Report"
+            className="w-full h-[250px] object-cover"
+            onError={(e) => {
+              e.target.src = 'https://via.placeholder.com/400x300?text=No+Image';
+            }}
           />
+          
+          {/* Navigation Arrows */}
+          {reportData.images.length > 1 && (
+            <>
+              <button 
+                onClick={prevImage}
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg hover:bg-white transition-colors"
+              >
+                <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              
+              <button 
+                onClick={nextImage}
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg hover:bg-white transition-colors"
+              >
+                <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+
+              {/* Dots Indicator */}
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                {reportData.images.map((_, index) => (
+                  <div
+                    key={index}
+                    onClick={() => setCurrentImageIndex(index)}
+                    className={`h-2 rounded-full transition-all cursor-pointer ${
+                      index === currentImageIndex 
+                        ? 'bg-white w-6' 
+                        : 'bg-white/50 w-2'
+                    }`}
+                  />
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
-        {/* Filter Buttons */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-          <button className="w-10 h-10 rounded-full border border-gray-300 bg-white flex items-center justify-center flex-shrink-0">
-            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+        {/* Title */}
+        <h2 className="text-2xl font-bold text-black mb-4">{reportData.title}</h2>
+
+        {/* Info Grid */}
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          {/* Type */}
+          <div className="flex items-start gap-2">
+            <svg className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z" />
             </svg>
-          </button>
-          
-          <button 
-            onClick={() => {
-              setShowLocationFilter(!showLocationFilter);
-              setShowCategoryFilter(false);
-              setShowTimeFilter(false);
-            }}
-            className="px-5 py-2.5 rounded-full border-2 border-[#3F35D3] text-[#3F35D3] text-sm font-medium bg-white flex items-center gap-1 flex-shrink-0"
-          >
-            {selectedFilters.location}
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            <div className="min-w-0">
+              <p className="text-xs text-gray-500">Jenis</p>
+              <p className="text-sm font-medium text-black break-words">{reportData.type}</p>
+            </div>
+          </div>
+
+          {/* Date */}
+          <div className="flex items-start gap-2">
+            <svg className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
             </svg>
-          </button>
-          
-          <button 
-            onClick={() => {
-              setShowCategoryFilter(!showCategoryFilter);
-              setShowLocationFilter(false);
-              setShowTimeFilter(false);
-            }}
-            className="px-5 py-2.5 rounded-full border border-gray-300 text-gray-700 text-sm font-medium bg-white flex items-center gap-1 flex-shrink-0"
-          >
-            {selectedFilters.category}
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            <div className="min-w-0">
+              <p className="text-xs text-gray-500">Tanggal</p>
+              <p className="text-sm font-medium text-black break-words">{reportData.date}</p>
+            </div>
+          </div>
+
+          {/* Location */}
+          <div className="flex items-start gap-2">
+            <svg className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
             </svg>
-          </button>
-          
-          <button 
-            onClick={() => {
-              setShowTimeFilter(!showTimeFilter);
-              setShowLocationFilter(false);
-              setShowCategoryFilter(false);
-            }}
-            className="px-5 py-2.5 rounded-full border border-gray-300 text-gray-700 text-sm font-medium bg-white flex items-center gap-1 flex-shrink-0"
-          >
-            {selectedFilters.time}
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
+            <div className="min-w-0">
+              <p className="text-xs text-gray-500">Location</p>
+              <p className="text-sm font-medium text-black break-words">{reportData.location}</p>
+            </div>
+          </div>
         </div>
 
-        {/* Filter Dropdowns */}
-        {showLocationFilter && (
-          <div className="bg-white rounded-2xl shadow-lg p-5 mb-6">
-            <h3 className="text-center text-[#3F35D3] font-semibold text-lg mb-4">Lokasi</h3>
-            <div className="space-y-2">
-              {locationOptions.map((option) => (
-                <button
-                  key={option}
-                  onClick={() => {
-                    setSelectedFilters({...selectedFilters, location: option});
-                    setShowLocationFilter(false);
-                  }}
-                  className={`w-full py-3 px-4 rounded-full border text-sm ${
-                    selectedFilters.location === option 
-                      ? 'border-[#3F35D3] bg-[#3F35D3] text-white' 
-                      : 'border-gray-300 bg-white text-gray-700'
-                  }`}
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {showCategoryFilter && (
-          <div className="bg-white rounded-2xl shadow-lg p-5 mb-6">
-            <h3 className="text-center text-[#3F35D3] font-semibold text-lg mb-4">Kategori</h3>
-            <div className="space-y-2">
-              {categoryOptions.map((option) => (
-                <button
-                  key={option}
-                  onClick={() => {
-                    setSelectedFilters({...selectedFilters, category: option});
-                    setShowCategoryFilter(false);
-                  }}
-                  className={`w-full py-3 px-4 rounded-full border text-sm ${
-                    selectedFilters.category === option 
-                      ? 'border-[#3F35D3] bg-[#3F35D3] text-white' 
-                      : 'border-gray-300 bg-white text-gray-700'
-                  }`}
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {showTimeFilter && (
-          <div className="bg-white rounded-2xl shadow-lg p-5 mb-6">
-            <h3 className="text-center text-[#3F35D3] font-semibold text-lg mb-4">Waktu</h3>
-            <div className="space-y-2">
-              {timeOptions.map((option) => (
-                <button
-                  key={option}
-                  onClick={() => {
-                    setSelectedFilters({...selectedFilters, time: option});
-                    setShowTimeFilter(false);
-                  }}
-                  className={`w-full py-3 px-4 rounded-full border text-sm ${
-                    selectedFilters.time === option 
-                      ? 'border-[#3F35D3] bg-[#3F35D3] text-white' 
-                      : 'border-gray-300 bg-white text-gray-700'
-                  }`}
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Report Cards */}
-        <div className="space-y-4">
-          {reports.map((item) => (
-            <ReportItem
-              key={item.id}
-              title={item.title}
-              image={item.image}
-              location={item.location}
-              date={item.date}
-              status={item.status}
-              category={item.category}
-              building={item.building}
+        {/* Contact Person Card */}
+        <div className="bg-white rounded-2xl p-4 mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <img 
+              src={reportData.finder.avatar}
+              alt={reportData.finder.name}
+              className="w-12 h-12 rounded-full object-cover"
+              onError={(e) => {
+                e.target.src = 'https://via.placeholder.com/50';
+              }}
             />
-          ))}
+            <div>
+              <p className="font-semibold text-black">{reportData.finder.name}</p>
+              <p className="text-sm text-gray-500">{reportData.finder.role}</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button className="w-10 h-10 bg-[#E8F5E9] rounded-full flex items-center justify-center hover:bg-[#C8E6C9] transition-colors">
+              <svg className="w-5 h-5 text-[#4CAF50]" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+              </svg>
+            </button>
+            <button className="w-10 h-10 bg-[#E3F2FD] rounded-full flex items-center justify-center hover:bg-[#BBDEFB] transition-colors">
+              <svg className="w-5 h-5 text-[#2196F3]" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Status */}
+        <div className="mb-6">
+          <h3 className="text-lg font-bold text-black mb-2">Status</h3>
+          <span className={`inline-block px-4 py-1.5 rounded-full text-sm font-medium ${
+            isFound 
+              ? 'bg-green-100 text-green-600' 
+              : 'bg-red-100 text-red-600'
+          }`}>
+            {reportData.status}
+          </span>
+        </div>
+
+        {/* Description */}
+        <div>
+          <h3 className="text-lg font-bold text-black mb-3">Deskripsi</h3>
+          <p className="text-sm text-gray-700 leading-relaxed">
+            {reportData.description}
+          </p>
         </div>
       </div>
-      
+
+      {/* Navbar */}
       <Navbar />
     </div>
   );
 };
 
-export default Laporan;
+export default DetailLaporan;
