@@ -12,16 +12,27 @@ import ForgotPasswordPage from "./pages/ForgotPassword";
 import ResetPasswordPage from "./pages/ResetPassword";
 import Home from "./pages/Home.jsx";
 import Laporan from "./pages/Laporan.jsx";
+import { AuthProvider } from "./context/AuthContext.jsx";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 createRoot(document.getElementById("root")).render(
   <BrowserRouter>
-    <Routes>
-      <Route path="/" element={<App />} />
-      <Route path="login" element={<LoginPage />} />
-      <Route path="forgot-password" element={<ForgotPasswordPage />} />
-      <Route path="reset-password" element={<ResetPasswordPage />} />
-      <Route path="home" element={<Home />} />
-      <Route path="laporan" element={<Laporan />} />
-    </Routes>
+    <AuthProvider>
+      <Routes>
+        <Route path="/" element={<App />} />
+        <Route path="login" element={<LoginPage />} />
+        <Route path="forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="reset-password" element={<ResetPasswordPage />} />
+        <Route
+          path="home"
+          element={
+            <ProtectedRoute>
+              <Home />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="laporan" element={<Laporan />} />
+      </Routes>
+    </AuthProvider>
   </BrowserRouter>,
 );
