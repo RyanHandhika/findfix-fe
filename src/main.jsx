@@ -14,6 +14,7 @@ import Home from "./pages/Home.jsx";
 import Laporan from "./pages/Laporan.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import ProtectedRoute from "./components/ProtectedRoute";
+import DetailLaporal from "./pages/DetailLaporan.jsx";
 
 createRoot(document.getElementById("root")).render(
   <BrowserRouter>
@@ -32,6 +33,7 @@ createRoot(document.getElementById("root")).render(
           }
         />
         <Route path="laporan" element={<Laporan />} />
+        <Route path="detail-laporan" element={<DetailLaporal />} />
       </Routes>
     </AuthProvider>
   </BrowserRouter>,
