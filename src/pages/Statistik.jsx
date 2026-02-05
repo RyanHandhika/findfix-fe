@@ -19,7 +19,7 @@ const Header = () => {
         />
         <h2 className="text-white font-semibold text-lg">Hi, User</h2>
       </div>
-
+      
       {/* Notifikasi */}
       <div className="relative">
         <span className="text-white text-2xl">🔔</span>
@@ -72,7 +72,7 @@ const Statistik = () => {
       {/* HEADER */}
       <Header />
       <div className="bg-gray-100 rounded-t-[35px] mt-5 px-5 py-6 min-h-screen">
-        
+
         <h2 className="text-center text-xl font-bold text-gray-800 mb-6">
           Statistics
         </h2>
