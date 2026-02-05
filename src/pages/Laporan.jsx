@@ -25,7 +25,7 @@ const Laporan = () => {
     {
       id: 1,
       title: "Casan Laptop",
-      image: "/api/placeholder/150/150",
+      image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRq8PVYPojyp_bVPcRmGtJphln9xFL31_hJ1w&s",
       location: "Gedung baru - Lt5",
       date: "02/01/2025",
       status: "DITEMUKAN",
@@ -34,8 +34,8 @@ const Laporan = () => {
     },
     {
       id: 2,
-      title: "Casan Laptop",
-      image: "/api/placeholder/150/150",
+      title: "Earphone Bluetooth",
+      image: "https://i.pinimg.com/736x/37/fb/a3/37fba3a49bc445ebe669a9f52e6ed24e.jpg",
       location: "Gedung baru - Lt5",
       date: "02/01/2025",
       status: "Hilang",
