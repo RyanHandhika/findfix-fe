@@ -48,7 +48,7 @@ const Home = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#4A3AFF] to-[#5B4CFF] pb-20">
+    <div className="min-h-screen bg-gradient-to-b from-[#4A3AFF]  pb-20">
       <Header />
 
       <div className="bg-gray-50 rounded-t-[30px] mt-5 p-5 min-h-screen">
