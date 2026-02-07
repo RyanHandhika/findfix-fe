@@ -1,50 +1,66 @@
+import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 import Header from "../components/Header";
 import ReportCard from "../components/ReportCard";
 import Navbar from "../components/Navbar";
+import { getReportStats, getNewestReport } from "../services/report";
 
 const Home = () => {
+  const [stats, setStats] = useState([]);
+  const [newestLost, setNewestLost] = useState(null);
+  const [newestFound, setNewestFound] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await getReportStats();
+
+        setStats([
+          { count: res.data.data.Hilang, label: "Hilang" },
+          { count: res.data.data.Ditemukan, label: "Ditemukan" },
+          { count: res.data.data.Dikembalikan, label: "Dikembalikan" },
+          { count: res.data.data.Tersimpan, label: "Tersimpan" },
+        ]);
+      } catch (error) {
+        console.error("Failed to fetch stats", error);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  useEffect(() => {
+    const fetchNewestReport = async () => {
+      try {
+        const res = await getNewestReport();
+
+        setNewestFound(res.data.data.Ditemukan);
+        setNewestLost(res.data.data.Hilang);
+      } catch (error) {
+        console.error("Failed to fetch newest report", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNewestReport();
+  }, []);
+
+  const getRoleName = (roleId) => {
+    return roleId === 2 ? "Mahasiswa" : "Staff";
+  };
+
+  const timeAgo = (date) => {
+    const diff = Math.floor((new Date() - new Date(date)) / 60000);
+    if (diff < 60) return `${diff} Menit lalu`;
+    return `${Math.floor(diff / 60)} Jam lalu`;
+  };
+
   const menuItems = [
     { icon: "🔍", label: "Cari", color: "bg-yellow-50" },
     { icon: "➕", label: "Laporan", color: "bg-blue-50" },
     { icon: "🕐", label: "Aktivitas", color: "bg-purple-50" },
-  ];
-
-  const stats = [
-    { count: 200, label: "Hilang" },
-    { count: 200, label: "Ditemukan" },
-    { count: 200, label: "Dikembalikan" },
-    { count: 200, label: "Tersimpan" },
-  ];
-
-  const lostReports = [
-    {
-      id: 1,
-      name: "Wade Waren",
-      role: "Mahasiswa",
-      time: "2 Jam Lalu",
-      itemName: "Charger Laptop",
-      location: "Gedung Baru lt 9",
-      description: "Charger Berwarna Pink Dengan Stiker Hello Kitty",
-      status: "HILANG",
-      statusColor: "red",
-      borderColor: "#FF4444",
-    },
-  ];
-
-  const foundReports = [
-    {
-      id: 2,
-      name: "Satpam Kampus",
-      role: "Staff",
-      time: "15 Menit lalu",
-      itemName: "Kunci Motor Honda",
-      location: "Parkiran B2",
-      description:
-        "Kunci Motor Dengan Gantungan Kunci Bentuk Bola Ditemukan Dekat Pos",
-      status: "DITEMUKAN",
-      statusColor: "green",
-      borderColor: "#4CAF50",
-    },
   ];
 
   return (
@@ -77,7 +93,7 @@ const Home = () => {
           <h3 className="text-base font-semibold text-gray-800 mb-4">
             Jumlah Laporan
           </h3>
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             {stats.map((stat, index) => (
               <div
                 key={index}
@@ -86,7 +102,7 @@ const Home = () => {
                 <div className="text-2xl font-bold text-gray-800 mb-1">
                   {stat.count}
                 </div>
-                <div className="text-xs text-gray-600">{stat.label}</div>
+                <div className="text-md text-gray-600">{stat.label}</div>
               </div>
             ))}
           </div>
@@ -97,13 +113,23 @@ const Home = () => {
             <h3 className="text-base font-semibold text-gray-800">
               Laporan Kehilangan Terbaru
             </h3>
-            <a href="#" className="text-[#4A3AFF] text-sm font-medium">
+            <Link to="/laporan" className="text-[#4A3AFF] text-sm font-medium">
               View all →
-            </a>
+            </Link>
           </div>
-          {lostReports.map((report) => (
-            <ReportCard key={report.id} {...report} />
-          ))}
+          {newestLost && (
+            <ReportCard
+              name={newestLost.user.name}
+              role={getRoleName(newestLost.user.user_role_id)}
+              time={timeAgo(newestLost.created_at)}
+              itemName={newestLost.found_name}
+              location={newestLost.room.no_room}
+              description={newestLost.found_description}
+              status="HILANG"
+              statusColor="red"
+              borderColor="#EF4444"
+            />
+          )}
         </div>
 
         <div className="mb-6">
@@ -111,13 +137,23 @@ const Home = () => {
             <h3 className="text-base font-semibold text-gray-800">
               Barang Ditemukan Terbaru
             </h3>
-            <a href="#" className="text-[#4A3AFF] text-sm font-medium">
+            <Link to="/laporan" className="text-[#4A3AFF] text-sm font-medium">
               View all →
-            </a>
+            </Link>
           </div>
-          {foundReports.map((report) => (
-            <ReportCard key={report.id} {...report} />
-          ))}
+          {newestFound && (
+            <ReportCard
+              name={newestFound.user.name}
+              role="Staff"
+              time={timeAgo(newestFound.created_at)}
+              itemName={newestFound.found_name}
+              location={newestFound.room.no_room}
+              description={newestFound.found_description}
+              status="DITEMUKAN"
+              statusColor="green"
+              borderColor="#22C55E"
+            />
+          )}
         </div>
       </div>
 

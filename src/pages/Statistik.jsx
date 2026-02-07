@@ -1,82 +1,14 @@
-import React from "react";
-import { AiFillHome } from "react-icons/ai";
-import { HiDocumentText } from "react-icons/hi";
-import { IoStatsChart } from "react-icons/io5";
-import { FaUserCircle } from "react-icons/fa";
+import Header from "../components/Header";
+import Navbar from "../components/Navbar";
 
-
-/* HEADER  */
-
-const Header = () => {
-  return (
-    <div className="flex justify-between items-center px-5 pt-6">
-      {/* Profile */}
-      <div className="flex items-center gap-3">
-        <img
-          src="../src/assets/person.png"
-          alt="profile"
-          className="w-11 h-11 rounded-full"
-        />
-        <h2 className="text-white font-semibold text-lg">Hi, User</h2>
-      </div>
-      
-      {/* Notifikasi */}
-      <div className="relative">
-        <span className="text-white text-2xl">🔔</span>
-        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs px-2 rounded-full">
-          3
-        </span>
-      </div>
-    </div>
-  );
-};
-
-/* NAVBAR COMPONENT */
-
-const Navbar = () => {
-  return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-md">
-      <div className="flex justify-around items-center py-2">
-
-        <button className="flex flex-col items-center text-gray-400 text-xs">
-          <AiFillHome size={22} />
-          Home
-        </button>
-
-        <button className="flex flex-col items-center text-gray-400 text-xs">
-          <HiDocumentText size={22} />
-          Laporan
-        </button>
-
-        <button className="flex flex-col items-center text-blue-600 font-semibold text-xs">
-          <div className="bg-blue-100 p-2 rounded-full">
-            <IoStatsChart size={22} />
-          </div>
-          Statistik
-        </button>
-
-        <button className="flex flex-col items-center text-gray-400 text-xs">
-          <FaUserCircle size={22} />
-          Profile
-        </button>
-      </div>
-    </div>
-  );
-};
-
-
-/* MAIN PAGE */
 const Statistik = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#3D2BFF] to-[#4A3AFF] pb-24">
-      {/* HEADER */}
+    <div className="min-h-screen bg-gradient-to-b from-[#4A3AFF]  pb-20">
       <Header />
       <div className="bg-gray-100 rounded-t-[35px] mt-5 px-5 py-6 min-h-screen">
-
         <h2 className="text-center text-xl font-bold text-gray-800 mb-6">
           Statistics
         </h2>
-
 
         {/* LINE CHART CARD */}
         <div className="bg-white rounded-2xl p-4 shadow-md mb-6">
@@ -147,7 +79,7 @@ const Statistik = () => {
         </div>
 
         {/* DESCRIPTION BOTTOM */}
-       
+
         <div>
           <h3 className="text-base font-bold text-gray-800 mb-2">Deskripsi</h3>
           <p className="text-sm text-gray-600 leading-relaxed">
