@@ -17,6 +17,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import DetailLaporal from "./pages/DetailLaporan.jsx";
 import Statistik from "./pages/Statistik.jsx";
 import Profile from "./pages/Profile.jsx";
+import TambahLaporan from "./pages/TambahLaporan.jsx";
 
 createRoot(document.getElementById("root")).render(
   <BrowserRouter>
@@ -38,6 +39,7 @@ createRoot(document.getElementById("root")).render(
         <Route path="detail-laporan" element={<DetailLaporal />} />
         <Route path="statistik" element={<Statistik />} />
         <Route path="profile" element={<Profile />} />
+        <Route path="tambah-laporan" element={<TambahLaporan />} />
       </Routes>
     </AuthProvider>
   </BrowserRouter>,
