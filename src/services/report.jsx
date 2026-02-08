@@ -8,4 +8,8 @@ const getNewestReport = () => {
   return api.get("/founds/get-newest-report");
 };
 
-export { getReportStats, getNewestReport };
+const getAllReport = () => {
+  return api.get("/founds/get-founds");
+};
+
+export { getReportStats, getNewestReport, getAllReport };

@@ -2,16 +2,15 @@ import { useEffect, useState } from "react";
 import Header from "../components/Header";
 import ReportItem from "../components/ReportItem";
 import Navbar from "../components/Navbar";
-import { getReportStats, getNewestReport } from "../services/report";
+import { getReportStats, getAllReport } from "../services/report";
 
 const Laporan = () => {
   const [showLocationFilter, setShowLocationFilter] = useState(false);
   const [showCategoryFilter, setShowCategoryFilter] = useState(false);
   const [showTimeFilter, setShowTimeFilter] = useState(false);
   const [stats, setStats] = useState([]);
-  // const [newestLost, setNewestLost] = useState(null);
-  // const [newestFound, setNewestFound] = useState(null);
-  // const [loading, setLoading] = useState(true);
+  const [allReportFound, setAllReportFound] = useState({ founds: [] });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -32,63 +31,29 @@ const Laporan = () => {
     fetchStats();
   }, []);
 
-  // useEffect(() => {
-  //   const fetchNewestReport = async () => {
-  //     try {
-  //       const res = await getNewestReport();
+  useEffect(() => {
+    const fetchAlltReport = async () => {
+      try {
+        const res = await getAllReport();
 
-  //       setNewestFound(res.data.data.Ditemukan);
-  //       setNewestLost(res.data.data.Hilang);
-  //     } catch (error) {
-  //       console.error("Failed to fetch newest report", error);
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
+        setAllReportFound(res.data.data);
+      } catch (error) {
+        console.error("Failed to fetch all report", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  //   fetchNewestReport();
-  // }, []);
+    fetchAlltReport();
+  }, []);
 
-  // const getRoleName = (roleId) => {
-  //   return roleId === 2 ? "Mahasiswa" : "Staff";
-  // };
-
-  // const timeAgo = (date) => {
-  //   const diff = Math.floor((new Date() - new Date(date)) / 60000);
-  //   if (diff < 60) return `${diff} Menit lalu`;
-  //   return `${Math.floor(diff / 60)} Jam lalu`;
-  // };
+  const reports = allReportFound.founds;
 
   const [selectedFilters, setSelectedFilters] = useState({
     location: "Smart Building",
     category: "Elektronik",
     time: "Hari ini",
   });
-
-  const reports = [
-    {
-      id: 1,
-      title: "Casan Laptop",
-      image:
-        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRq8PVYPojyp_bVPcRmGtJphln9xFL31_hJ1w&s",
-      location: "Gedung baru - Lt5",
-      date: "02/01/2025",
-      status: "DITEMUKAN",
-      category: "Elektronik",
-      building: "Smart building",
-    },
-    {
-      id: 2,
-      title: "Earphone Bluetooth",
-      image:
-        "https://i.pinimg.com/736x/37/fb/a3/37fba3a49bc445ebe669a9f52e6ed24e.jpg",
-      location: "Gedung baru - Lt5",
-      date: "02/01/2025",
-      status: "Hilang",
-      category: "Elektronik",
-      building: "Smart building",
-    },
-  ];
 
   const locationOptions = [
     "Smart Building",
@@ -338,13 +303,13 @@ const Laporan = () => {
           {reports.map((item) => (
             <ReportItem
               key={item.id}
-              title={item.title}
-              image={item.image}
-              location={item.location}
-              date={item.date}
-              status={item.status}
-              category={item.category}
-              building={item.building}
+              title={item.found_name}
+              image={item.found_images[0]}
+              location={item.room.no_room}
+              date={item.found_date}
+              status={item.status.name}
+              category={item.category.name}
+              building={item.room.building.description}
             />
           ))}
         </div>
