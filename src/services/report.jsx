@@ -12,4 +12,8 @@ const getAllReport = () => {
   return api.get("/founds/get-founds");
 };
 
-export { getReportStats, getNewestReport, getAllReport };
+const addNewReport = () => {
+  return api.post();
+};
+
+export { getReportStats, getNewestReport, getAllReport, addNewReport };
