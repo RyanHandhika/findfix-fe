@@ -332,7 +332,7 @@ const DetailLaporan = ({ report, isOpen, onClose, onUpdateStatus }) => {
                     📧 Email User
                   </button>
                   <button className="px-4 py-3 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-xl font-medium transition-colors">
-                    🔔 Send Notification
+                    🔔 Send Notification Now
                   </button>
                 </div>
               </div>
