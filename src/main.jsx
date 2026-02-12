@@ -18,6 +18,7 @@ import DetailLaporan from "./pages/DetailLaporan.jsx";
 import Statistik from "./pages/Statistik.jsx";
 import Profile from "./pages/Profile.jsx";
 import TambahLaporan from "./pages/TambahLaporan.jsx";
+import DashboardAdmin from "./pages/DashboardAdmin.jsx";
 
 createRoot(document.getElementById("root")).render(
   <BrowserRouter>
