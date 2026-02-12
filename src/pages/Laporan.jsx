@@ -1,53 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Header from "../components/Header";
 import ReportItem from "../components/ReportItem";
 import Navbar from "../components/Navbar";
 import { getReportStats, getAllReport } from "../services/report";
+import { useLocation, useSearchParams } from "react-router-dom";
 
 const Laporan = () => {
   const [showLocationFilter, setShowLocationFilter] = useState(false);
   const [showCategoryFilter, setShowCategoryFilter] = useState(false);
   const [showTimeFilter, setShowTimeFilter] = useState(false);
   const [stats, setStats] = useState([]);
-  const [allReportFound, setAllReportFound] = useState({ founds: [] });
+  const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const res = await getReportStats();
-
-        setStats([
-          { count: res.data.data.Hilang, label: "Hilang" },
-          { count: res.data.data.Ditemukan, label: "Ditemukan" },
-          { count: res.data.data.Dikembalikan, label: "Dikembalikan" },
-          { count: res.data.data.Tersimpan, label: "Tersimpan" },
-        ]);
-      } catch (error) {
-        console.error("Failed to fetch stats", error);
-      }
-    };
-
-    fetchStats();
-  }, []);
-
-  useEffect(() => {
-    const fetchAlltReport = async () => {
-      try {
-        const res = await getAllReport();
-
-        setAllReportFound(res.data.data);
-      } catch (error) {
-        console.error("Failed to fetch all report", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAlltReport();
-  }, []);
-
-  const reports = allReportFound.founds;
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const searchRef = useRef(null);
 
   const [selectedFilters, setSelectedFilters] = useState({
     location: "Smart Building",
@@ -80,6 +47,49 @@ const Laporan = () => {
     "30 Hari Terakhir",
     "Semua Waktu",
   ];
+
+  useEffect(() => {
+    if (location.state?.focusSearch) {
+      searchRef.current?.focus();
+    }
+  }, [location.state]);
+
+  useEffect(() => {
+    const statusName = searchParams.get("status");
+    const statusMap = {
+      Hilang: 2,
+      Ditemukan: 1,
+    };
+    const filters = {};
+    if (statusName && statusMap[statusName]) {
+      filters.found_status_id = statusMap[statusName];
+    }
+
+    setLoading(true);
+    getAllReport(filters)
+      .then((res) => setReports(res.data.data.founds ?? []))
+      .catch((err) => console.error("Failed to fetch reports:", err))
+      .finally(() => setLoading(false));
+  }, [searchParams]);
+
+  // Fetch stats separately
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await getReportStats();
+        setStats([
+          { count: res.data.data.Hilang, label: "Hilang" },
+          { count: res.data.data.Ditemukan, label: "Ditemukan" },
+          { count: res.data.data.Dikembalikan, label: "Dikembalikan" },
+          { count: res.data.data.Tersimpan, label: "Tersimpan" },
+        ]);
+      } catch (error) {
+        console.error("Failed to fetch stats:", error);
+      }
+    };
+
+    fetchStats();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#4A3AFF]">
@@ -117,7 +127,9 @@ const Laporan = () => {
             />
           </svg>
           <input
-            placeholder="Search"
+            ref={searchRef}
+            type="text"
+            placeholder="Search..."
             className="w-full bg-white rounded-full py-3 pl-12 pr-4 text-sm outline-none text-gray-400"
           />
         </div>
@@ -300,18 +312,29 @@ const Laporan = () => {
 
         {/* Report Cards */}
         <div className="space-y-4">
-          {reports.map((item) => (
-            <ReportItem
-              key={item.id}
-              title={item.found_name}
-              image={item.found_images[0]}
-              location={item.room.no_room}
-              date={item.found_date}
-              status={item.status.name}
-              category={item.category.name}
-              building={item.room.building.description}
-            />
-          ))}
+          {loading ? (
+            <p className="text-center text-gray-400 py-8">Memuat data...</p>
+          ) : reports.length === 0 ? (
+            <p className="text-center text-gray-400 py-8">
+              Tidak ada laporan ditemukan.
+            </p>
+          ) : (
+            reports.map((item) => (
+              <ReportItem
+                key={item.id}
+                title={item.found_name}
+                image={
+                  item.found_images?.[0]?.found_img_url ??
+                  "https://placehold.co/400x300?text=No+Image"
+                }
+                location={item.room.no_room}
+                date={item.found_date}
+                status={item.status.name}
+                category={item.category.name}
+                building={item.room.building.description}
+              />
+            ))
+          )}
         </div>
       </div>
 

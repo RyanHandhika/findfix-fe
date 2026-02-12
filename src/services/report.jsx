@@ -8,8 +8,10 @@ const getNewestReport = () => {
   return api.get("/founds/get-newest-report");
 };
 
-const getAllReport = () => {
-  return api.get("/founds/get-founds");
+const getAllReport = (filters = {}) => {
+  return api.get("/founds/get-founds", {
+    params: filters,
+  });
 };
 
 const addNewReport = async (formData) => {

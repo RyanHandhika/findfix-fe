@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Header from "../components/Header";
 import ReportCard from "../components/ReportCard";
@@ -6,6 +6,7 @@ import Navbar from "../components/Navbar";
 import { getReportStats, getNewestReport } from "../services/report";
 
 const Home = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState([]);
   const [newestLost, setNewestLost] = useState(null);
   const [newestFound, setNewestFound] = useState(null);
@@ -15,7 +16,6 @@ const Home = () => {
     const fetchStats = async () => {
       try {
         const res = await getReportStats();
-
         setStats([
           { count: res.data.data.Hilang, label: "Hilang" },
           { count: res.data.data.Ditemukan, label: "Ditemukan" },
@@ -34,7 +34,6 @@ const Home = () => {
     const fetchNewestReport = async () => {
       try {
         const res = await getNewestReport();
-
         setNewestFound(res.data.data.Ditemukan);
         setNewestLost(res.data.data.Hilang);
       } catch (error) {
@@ -47,33 +46,83 @@ const Home = () => {
     fetchNewestReport();
   }, []);
 
+  const handleSearchClick = () => {
+    navigate("/laporan", { state: { focusSearch: true } });
+  };
+
   const getRoleName = (roleId) => {
     return roleId === 2 ? "Mahasiswa" : "Staff";
   };
 
   const timeAgo = (date) => {
-    const diff = Math.floor((new Date() - new Date(date)) / 60000);
-    if (diff < 60) return `${diff} Menit lalu`;
-    return `${Math.floor(diff / 60)} Jam lalu`;
+    const now = new Date();
+    const past = new Date(date);
+    const diffInSeconds = Math.floor((now - past) / 1000);
+
+    const minutes = Math.floor(diffInSeconds / 60);
+    const hours = Math.floor(diffInSeconds / 3600);
+    const days = Math.floor(diffInSeconds / 86400);
+    const weeks = Math.floor(diffInSeconds / 604800);
+    const months = Math.floor(diffInSeconds / 2592000);
+    const years = Math.floor(diffInSeconds / 31536000);
+
+    if (minutes < 60) {
+      return `${minutes} Menit lalu`;
+    }
+
+    if (hours < 24) {
+      return `${hours} Jam lalu`;
+    }
+
+    if (days < 7) {
+      return `${days} Hari lalu`;
+    }
+
+    if (weeks < 4) {
+      return `${weeks} Minggu lalu`;
+    }
+
+    if (months < 12) {
+      return `${months} Bulan lalu`;
+    }
+
+    return `${years} Tahun lalu`;
   };
 
   const menuItems = [
-    { icon: "🔍", label: "Cari", color: "bg-yellow-50" },
-    { icon: "➕", label: "Laporan", color: "bg-blue-50" },
-    { icon: "🕐", label: "Aktivitas", color: "bg-purple-50" },
+    {
+      icon: "🔍",
+      label: "Cari",
+      color: "bg-yellow-50",
+      onClick: handleSearchClick,
+    },
+    {
+      icon: "➕",
+      label: "Laporan",
+      color: "bg-blue-50",
+      onClick: () => navigate("/tambah-laporan"),
+    },
+    {
+      icon: "🕐",
+      label: "Aktivitas",
+      color: "bg-purple-50",
+      onClick: () => navigate("/profile"),
+    },
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#4A3AFF]  pb-20">
+    <div className="min-h-screen bg-gradient-to-b from-[#4A3AFF] pb-20">
       <Header />
 
       <div className="bg-gray-50 rounded-t-[30px] mt-5 p-5 min-h-screen">
+        {/* menu */}
         <div className="mb-6">
           <h2 className="text-xl font-semibold text-gray-800 mb-4">Menu</h2>
           <div className="flex gap-4">
             {menuItems.map((item, index) => (
               <button
                 key={index}
+                onClick={item.onClick}
                 className="flex-1 bg-white rounded-2xl p-5 shadow-md flex flex-col items-center gap-3 active:scale-95 transition-transform"
               >
                 <div
@@ -89,6 +138,7 @@ const Home = () => {
           </div>
         </div>
 
+        {/* statistik */}
         <div className="bg-white rounded-2xl p-5 shadow-md mb-6">
           <h3 className="text-base font-semibold text-gray-800 mb-4">
             Jumlah Laporan
@@ -113,22 +163,33 @@ const Home = () => {
             <h3 className="text-base font-semibold text-gray-800">
               Laporan Kehilangan Terbaru
             </h3>
-            <Link to="/laporan" className="text-[#4A3AFF] text-sm font-medium">
+            <Link
+              to="/laporan?status=Hilang"
+              state={{ found_status_id: 2 }}
+              className="text-[#4A3AFF] text-sm font-medium"
+            >
               View all →
             </Link>
           </div>
-          {newestLost && (
+
+          {loading ? (
+            <p className="text-center text-gray-400 py-4">Memuat...</p>
+          ) : newestLost ? (
             <ReportCard
-              name={newestLost.user.name}
-              role={getRoleName(newestLost.user.user_role_id)}
+              name={newestLost.user?.name ?? "-"}
+              role={getRoleName(newestLost.user?.user_role_id)}
               time={timeAgo(newestLost.created_at)}
               itemName={newestLost.found_name}
-              location={newestLost.room.no_room}
+              location={newestLost.room?.no_room ?? "-"}
               description={newestLost.found_description}
               status="HILANG"
               statusColor="red"
               borderColor="#EF4444"
             />
+          ) : (
+            <p className="text-center text-gray-400 py-4">
+              Belum ada laporan kehilangan
+            </p>
           )}
         </div>
 
@@ -137,22 +198,33 @@ const Home = () => {
             <h3 className="text-base font-semibold text-gray-800">
               Barang Ditemukan Terbaru
             </h3>
-            <Link to="/laporan" className="text-[#4A3AFF] text-sm font-medium">
+            <Link
+              to="/laporan?status=Ditemukan"
+              state={{ found_status_id: 1 }}
+              className="text-[#4A3AFF] text-sm font-medium"
+            >
               View all →
             </Link>
           </div>
-          {newestFound && (
+
+          {loading ? (
+            <p className="text-center text-gray-400 py-4">Memuat...</p>
+          ) : newestFound ? (
             <ReportCard
-              name={newestFound.user.name}
-              role="Staff"
+              name={newestFound.user?.name ?? "-"}
+              role={getRoleName(newestFound.user?.user_role_id)}
               time={timeAgo(newestFound.created_at)}
               itemName={newestFound.found_name}
-              location={newestFound.room.no_room}
+              location={newestFound.room?.no_room ?? "-"}
               description={newestFound.found_description}
               status="DITEMUKAN"
               statusColor="green"
               borderColor="#22C55E"
             />
+          ) : (
+            <p className="text-center text-gray-400 py-4">
+              Belum ada barang ditemukan
+            </p>
           )}
         </div>
       </div>

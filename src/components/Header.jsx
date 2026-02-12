@@ -1,6 +1,26 @@
+import { useEffect, useState } from "react";
 import PersonImg from "../assets/person.png";
+import { getMe } from "../services/auth";
 
 const Header = () => {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await getMe();
+        setUser(res.data);
+      } catch (err) {
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
+        }
+      }
+    };
+
+    fetchUser();
+  }, []);
+
   return (
     <header className="bg-gradient-to-b from-[#4A3AFF] to-[#5B4CFF] px-5 py-6 flex justify-between items-center text-white">
       <div className="flex items-center gap-4">
@@ -13,9 +33,10 @@ const Header = () => {
         </div>
         <div>
           <p className="text-sm opacity-90">Selamat Datang,</p>
-          <p className="text-lg font-semibold">Hi, Ryan</p>
+          <p className="text-lg font-semibold">Hi, {user?.name || "User"}</p>
         </div>
       </div>
+
       <div className="relative">
         <span className="text-2xl">🔔</span>
         <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center">
