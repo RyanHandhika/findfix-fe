@@ -1,5 +1,17 @@
 import api from "./axios";
 
+const getFoundCategories = () => {
+  return api.get("/founds/get-found-category");
+};
+
+const getFoundStatuses = () => {
+  return api.get("/founds/get-found-status");
+};
+
+// const getRooms = () => {
+//   return api.get("/founds/get-rooms");
+// };
+
 const getReportStats = () => {
   return api.get("/founds/get-count-report");
 };
@@ -28,4 +40,12 @@ const addNewReport = async (formData) => {
   }
 };
 
-export { getReportStats, getNewestReport, getAllReport, addNewReport };
+export {
+  getReportStats,
+  getNewestReport,
+  getAllReport,
+  addNewReport,
+  getFoundCategories,
+  getFoundStatuses,
+  // getRooms,
+};

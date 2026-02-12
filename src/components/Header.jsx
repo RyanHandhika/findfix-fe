@@ -1,24 +1,14 @@
 import { useEffect, useState } from "react";
 import PersonImg from "../assets/person.png";
-import { getMe } from "../services/auth";
 
 const Header = () => {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const res = await getMe();
-        setUser(res.data);
-      } catch (err) {
-        const storedUser = localStorage.getItem("user");
-        if (storedUser) {
-          setUser(JSON.parse(storedUser));
-        }
-      }
-    };
-
-    fetchUser();
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
   }, []);
 
   return (
@@ -33,6 +23,7 @@ const Header = () => {
         </div>
         <div>
           <p className="text-sm opacity-90">Selamat Datang,</p>
+          {/* ✅ Tampilkan name dari localStorage */}
           <p className="text-lg font-semibold">Hi, {user?.name || "User"}</p>
         </div>
       </div>

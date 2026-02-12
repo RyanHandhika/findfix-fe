@@ -1,52 +1,67 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import Header from "../components/Header";
 import ReportItem from "../components/ReportItem";
 import Navbar from "../components/Navbar";
-import { getReportStats, getAllReport } from "../services/report";
+import {
+  getReportStats,
+  getAllReport,
+  getFoundCategories,
+  getFoundStatuses,
+  // getRooms,
+} from "../services/report";
 import { useLocation, useSearchParams } from "react-router-dom";
 
 const Laporan = () => {
   const [showLocationFilter, setShowLocationFilter] = useState(false);
   const [showCategoryFilter, setShowCategoryFilter] = useState(false);
   const [showTimeFilter, setShowTimeFilter] = useState(false);
+
   const [stats, setStats] = useState([]);
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchParams] = useSearchParams();
+
+  // Get all data
+  const [categories, setCategories] = useState([]);
+  const [statuses, setStatuses] = useState([]);
+  const [rooms, setRooms] = useState([]);
+
+  const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
   const searchRef = useRef(null);
-
-  const [selectedFilters, setSelectedFilters] = useState({
-    location: "Smart Building",
-    category: "Elektronik",
-    time: "Hari ini",
-  });
-
-  const locationOptions = [
-    "Smart Building",
-    "Kampus Dago",
-    "Kampus Miracle",
-    "Area Parkiran Smart Building",
-    "Area Parkiran Kampus Dago",
-    "Lainnya",
-  ];
-
-  const categoryOptions = [
-    "Elektronik",
-    "Dokumen dan Identitas",
-    "Tas dan Dompet",
-    "Kendaraan dan Perlengkapannya",
-    "Pakaian dan Aksesoris",
-    "Lainnya",
-  ];
+  const debounceRef = useRef(null);
 
   const timeOptions = [
+    "Semua Waktu",
     "Hari Ini",
     "3 Hari Terakhir",
     "7 Hari Terakhir",
     "30 Hari Terakhir",
-    "Semua Waktu",
   ];
+
+  const [selectedFilters, setSelectedFilters] = useState({
+    location: searchParams.get("location") ?? "Semua Lokasi",
+    category: searchParams.get("category") ?? "Semua Kategori",
+    time: "Semua Waktu",
+  });
+
+  useEffect(() => {
+    const fetchMasterData = async () => {
+      try {
+        // const [catRes, statusRes, roomRes] = await Promise.all([
+        const [catRes, statusRes] = await Promise.all([
+          getFoundCategories(),
+          getFoundStatuses(),
+          // getRooms(),
+        ]);
+        setCategories(catRes.data.data.data ?? []);
+        setStatuses(statusRes.data.data.data ?? []);
+        // setRooms(roomRes.data.data.data ?? []);
+      } catch (error) {
+        console.error("Failed to fetch master data:", error);
+      }
+    };
+    fetchMasterData();
+  }, []);
 
   useEffect(() => {
     if (location.state?.focusSearch) {
@@ -56,13 +71,26 @@ const Laporan = () => {
 
   useEffect(() => {
     const statusName = searchParams.get("status");
-    const statusMap = {
-      Hilang: 2,
-      Ditemukan: 1,
-    };
+    const foundName = searchParams.get("found_name");
+    const categoryName = searchParams.get("category");
+    const locationName = searchParams.get("location");
+
     const filters = {};
-    if (statusName && statusMap[statusName]) {
-      filters.found_status_id = statusMap[statusName];
+
+    if (statusName) {
+      const found = statuses.find((s) => s.name === statusName);
+      if (found) filters.found_status_id = found.id;
+    }
+    if (foundName) {
+      filters.found_name = foundName;
+    }
+    if (categoryName) {
+      const found = categories.find((c) => c.name === categoryName);
+      if (found) filters.found_category_id = found.id;
+    }
+    if (locationName) {
+      const found = rooms.find((r) => r.name === locationName);
+      if (found) filters.room_id = found.id;
     }
 
     setLoading(true);
@@ -70,9 +98,8 @@ const Laporan = () => {
       .then((res) => setReports(res.data.data.founds ?? []))
       .catch((err) => console.error("Failed to fetch reports:", err))
       .finally(() => setLoading(false));
-  }, [searchParams]);
+  }, [searchParams, statuses, categories, rooms]);
 
-  // Fetch stats separately
   useEffect(() => {
     const fetchStats = async () => {
       try {
@@ -87,15 +114,71 @@ const Laporan = () => {
         console.error("Failed to fetch stats:", error);
       }
     };
-
     fetchStats();
+  }, []);
+
+  const handleSearch = useCallback(
+    (e) => {
+      const value = e.target.value;
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        setSearchParams((prev) => {
+          const next = new URLSearchParams(prev);
+          if (value.trim()) {
+            next.set("found_name", value.trim());
+          } else {
+            next.delete("found_name");
+          }
+          return next;
+        });
+      }, 500);
+    },
+    [setSearchParams],
+  );
+
+  const handleCategoryFilter = useCallback(
+    (option) => {
+      setSelectedFilters((prev) => ({ ...prev, category: option }));
+      setShowCategoryFilter(false);
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        if (option === "Semua Kategori") {
+          next.delete("category");
+        } else {
+          next.set("category", option);
+        }
+        return next;
+      });
+    },
+    [setSearchParams],
+  );
+
+  const handleLocationFilter = useCallback(
+    (option) => {
+      setSelectedFilters((prev) => ({ ...prev, location: option }));
+      setShowLocationFilter(false);
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        if (option === "Semua Lokasi") {
+          next.delete("location");
+        } else {
+          next.set("location", option);
+        }
+        return next;
+      });
+    },
+    [setSearchParams],
+  );
+
+  const handleTimeFilter = useCallback((option) => {
+    setSelectedFilters((prev) => ({ ...prev, time: option }));
+    setShowTimeFilter(false);
   }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#4A3AFF]">
       <Header />
 
-      {/* White Container */}
       <div className="bg-[#F3F7FF] rounded-t-[32px] mt-6 px-4 pt-6 pb-28 min-h-screen">
         <h2 className="text-[17px] font-semibold mb-5 text-black">
           Temukan barang hilang anda disini
@@ -130,7 +213,9 @@ const Laporan = () => {
             ref={searchRef}
             type="text"
             placeholder="Search..."
-            className="w-full bg-white rounded-full py-3 pl-12 pr-4 text-sm outline-none text-gray-400"
+            defaultValue={searchParams.get("found_name") ?? ""}
+            onChange={handleSearch}
+            className="w-full bg-white rounded-full py-3 pl-12 pr-4 text-sm outline-none text-gray-700"
           />
         </div>
 
@@ -152,13 +237,18 @@ const Laporan = () => {
             </svg>
           </button>
 
+          {/* Lokasi */}
           <button
             onClick={() => {
               setShowLocationFilter(!showLocationFilter);
               setShowCategoryFilter(false);
               setShowTimeFilter(false);
             }}
-            className="px-5 py-2.5 rounded-full border-2 border-[#3F35D3] text-[#3F35D3] text-sm font-medium bg-white flex items-center gap-1 flex-shrink-0"
+            className={`px-5 py-2.5 rounded-full border-2 text-sm font-medium bg-white flex items-center gap-1 flex-shrink-0 transition-colors ${
+              selectedFilters.location !== "Semua Lokasi"
+                ? "border-[#3F35D3] text-[#3F35D3]"
+                : "border-gray-300 text-gray-700"
+            }`}
           >
             {selectedFilters.location}
             <svg
@@ -176,13 +266,18 @@ const Laporan = () => {
             </svg>
           </button>
 
+          {/* Kategori */}
           <button
             onClick={() => {
               setShowCategoryFilter(!showCategoryFilter);
               setShowLocationFilter(false);
               setShowTimeFilter(false);
             }}
-            className="px-5 py-2.5 rounded-full border border-gray-300 text-gray-700 text-sm font-medium bg-white flex items-center gap-1 flex-shrink-0"
+            className={`px-5 py-2.5 rounded-full border text-sm font-medium bg-white flex items-center gap-1 flex-shrink-0 transition-colors ${
+              selectedFilters.category !== "Semua Kategori"
+                ? "border-[#3F35D3] text-[#3F35D3]"
+                : "border-gray-300 text-gray-700"
+            }`}
           >
             {selectedFilters.category}
             <svg
@@ -200,6 +295,7 @@ const Laporan = () => {
             </svg>
           </button>
 
+          {/* Waktu */}
           <button
             onClick={() => {
               setShowTimeFilter(!showTimeFilter);
@@ -225,65 +321,75 @@ const Laporan = () => {
           </button>
         </div>
 
-        {/* Filter Dropdowns */}
+        {/* Dropdown Lokasi — dari API */}
         {showLocationFilter && (
           <div className="bg-white rounded-2xl shadow-lg p-5 mb-6">
             <h3 className="text-center text-[#3F35D3] font-semibold text-lg mb-4">
               Lokasi
             </h3>
             <div className="space-y-2">
-              {locationOptions.map((option) => (
+              <button
+                onClick={() => handleLocationFilter("Semua Lokasi")}
+                className={`w-full py-3 px-4 rounded-full border text-sm ${
+                  selectedFilters.location === "Semua Lokasi"
+                    ? "border-[#3F35D3] bg-[#3F35D3] text-white"
+                    : "border-gray-300 bg-white text-gray-700"
+                }`}
+              >
+                Semua Lokasi
+              </button>
+              {rooms.map((room) => (
                 <button
-                  key={option}
-                  onClick={() => {
-                    setSelectedFilters({
-                      ...selectedFilters,
-                      location: option,
-                    });
-                    setShowLocationFilter(false);
-                  }}
+                  key={room.id}
+                  onClick={() => handleLocationFilter(room.name)}
                   className={`w-full py-3 px-4 rounded-full border text-sm ${
-                    selectedFilters.location === option
+                    selectedFilters.location === room.name
                       ? "border-[#3F35D3] bg-[#3F35D3] text-white"
                       : "border-gray-300 bg-white text-gray-700"
                   }`}
                 >
-                  {option}
+                  {room.name}
                 </button>
               ))}
             </div>
           </div>
         )}
 
+        {/* Dropdown Kategori — dari API */}
         {showCategoryFilter && (
           <div className="bg-white rounded-2xl shadow-lg p-5 mb-6">
             <h3 className="text-center text-[#3F35D3] font-semibold text-lg mb-4">
               Kategori
             </h3>
             <div className="space-y-2">
-              {categoryOptions.map((option) => (
+              <button
+                onClick={() => handleCategoryFilter("Semua Kategori")}
+                className={`w-full py-3 px-4 rounded-full border text-sm ${
+                  selectedFilters.category === "Semua Kategori"
+                    ? "border-[#3F35D3] bg-[#3F35D3] text-white"
+                    : "border-gray-300 bg-white text-gray-700"
+                }`}
+              >
+                Semua Kategori
+              </button>
+              {categories.map((cat) => (
                 <button
-                  key={option}
-                  onClick={() => {
-                    setSelectedFilters({
-                      ...selectedFilters,
-                      category: option,
-                    });
-                    setShowCategoryFilter(false);
-                  }}
+                  key={cat.id}
+                  onClick={() => handleCategoryFilter(cat.name)}
                   className={`w-full py-3 px-4 rounded-full border text-sm ${
-                    selectedFilters.category === option
+                    selectedFilters.category === cat.name
                       ? "border-[#3F35D3] bg-[#3F35D3] text-white"
                       : "border-gray-300 bg-white text-gray-700"
                   }`}
                 >
-                  {option}
+                  {cat.name}
                 </button>
               ))}
             </div>
           </div>
         )}
 
+        {/* Dropdown Waktu */}
         {showTimeFilter && (
           <div className="bg-white rounded-2xl shadow-lg p-5 mb-6">
             <h3 className="text-center text-[#3F35D3] font-semibold text-lg mb-4">
@@ -293,10 +399,7 @@ const Laporan = () => {
               {timeOptions.map((option) => (
                 <button
                   key={option}
-                  onClick={() => {
-                    setSelectedFilters({ ...selectedFilters, time: option });
-                    setShowTimeFilter(false);
-                  }}
+                  onClick={() => handleTimeFilter(option)}
                   className={`w-full py-3 px-4 rounded-full border text-sm ${
                     selectedFilters.time === option
                       ? "border-[#3F35D3] bg-[#3F35D3] text-white"
