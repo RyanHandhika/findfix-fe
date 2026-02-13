@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import AdminLayout from "../components/admin/AdminLayout";
 import StatCard from "../components/admin/StatCard";
 import { Line, Bar, Doughnut } from "react-chartjs-2";
@@ -24,11 +24,164 @@ ChartJS.register(
   ArcElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
 );
 
+// ─── Static data moved outside component to prevent re-creation on every render ───
+
+const TOP_LOCATIONS = [
+  { name: "Smart Building", count: 142, percentage: 29 },
+  { name: "Kampus Dago", count: 98, percentage: 20 },
+  { name: "Lab Komputer", count: 76, percentage: 15 },
+  { name: "Parkiran Utama", count: 54, percentage: 11 },
+  { name: "Lainnya", count: 120, percentage: 25 },
+];
+
+const RECENT_ACTIVITIES = [
+  {
+    id: 1,
+    user: "Ryan Pratama",
+    action: "membuat laporan baru",
+    item: "Laptop Dell",
+    time: "5 menit lalu",
+    type: "report",
+  },
+  {
+    id: 2,
+    user: "Admin Sistem",
+    action: "mengubah status",
+    item: "Laporan #1234",
+    time: "15 menit lalu",
+    type: "update",
+  },
+  {
+    id: 3,
+    user: "Siti Nurhaliza",
+    action: "mengembalikan barang",
+    item: "Tas Ransel",
+    time: "1 jam lalu",
+    type: "return",
+  },
+  {
+    id: 4,
+    user: "Ahmad Zaki",
+    action: "mendaftar sebagai user",
+    item: null,
+    time: "2 jam lalu",
+    type: "user",
+  },
+];
+
+// ─── Chart data per time range ───
+// Extend this object when connecting to a real API
+const ACTIVITY_DATA_BY_RANGE = {
+  "7days": {
+    labels: ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"],
+    incoming: [45, 52, 38, 65, 58, 42, 48],
+    completed: [32, 40, 28, 48, 42, 35, 38],
+  },
+  "30days": {
+    labels: ["M1", "M2", "M3", "M4"],
+    incoming: [210, 245, 198, 290],
+    completed: [180, 210, 165, 245],
+  },
+  "90days": {
+    labels: ["Jan", "Feb", "Mar"],
+    incoming: [620, 710, 540],
+    completed: [530, 590, 480],
+  },
+};
+
+// ─── Base chart options (no scales — used by Doughnut) ───
+const BASE_CHART_OPTIONS = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      position: "bottom",
+      labels: {
+        padding: 15,
+        font: { size: 12, weight: "500" },
+        usePointStyle: true,
+      },
+    },
+    tooltip: {
+      backgroundColor: "rgba(0, 0, 0, 0.8)",
+      padding: 12,
+      titleFont: { size: 14, weight: "bold" },
+      bodyFont: { size: 13 },
+      cornerRadius: 8,
+    },
+  },
+};
+
+// ─── Line/Bar chart options (includes scales) ───
+const AXIS_CHART_OPTIONS = {
+  ...BASE_CHART_OPTIONS,
+  scales: {
+    y: {
+      beginAtZero: true,
+      grid: { color: "rgba(0, 0, 0, 0.05)" },
+      ticks: { font: { size: 11 } },
+    },
+    x: {
+      grid: { display: false },
+      ticks: { font: { size: 11 } },
+    },
+  },
+};
+
+// ─── Doughnut-specific options (no scales) ───
+const DOUGHNUT_OPTIONS = {
+  ...BASE_CHART_OPTIONS,
+  cutout: "70%",
+};
+
+// ─── Category chart data (static — move to API call if needed) ───
+const CATEGORY_DATA = {
+  labels: [
+    "Elektronik",
+    "Dokumen",
+    "Tas & Dompet",
+    "Kendaraan",
+    "Pakaian",
+    "Lainnya",
+  ],
+  datasets: [
+    {
+      label: "Jumlah Laporan",
+      data: [125, 98, 87, 65, 48, 67],
+      backgroundColor: [
+        "#4A3AFF",
+        "#10B981",
+        "#F59E0B",
+        "#EF4444",
+        "#8B5CF6",
+        "#6B7280",
+      ],
+      borderWidth: 0,
+    },
+  ],
+};
+
+// ─── Status data — kept consistent with stats below ───
+// pending: 134, processing: 128, completed: 356, rejected: 22 → total: 640
+// Note: totalReports (490) reflects only active/unarchived reports; adjust as needed
+const STATUS_DATA = {
+  labels: ["Pending", "Proses", "Selesai", "Ditolak"],
+  datasets: [
+    {
+      data: [134, 128, 356, 22],
+      backgroundColor: ["#F59E0B", "#3B82F6", "#10B981", "#EF4444"],
+      borderWidth: 0,
+    },
+  ],
+};
+
+// ─── Component ───
+
 const DashboardAdmin = () => {
-  const [stats, setStats] = useState({
+  const [stats] = useState({
     totalReports: 490,
     activeUsers: 1248,
     completedReports: 356,
@@ -37,146 +190,31 @@ const DashboardAdmin = () => {
 
   const [timeRange, setTimeRange] = useState("7days");
 
-  // Chart Options
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: "bottom",
-        labels: {
-          padding: 15,
-          font: { size: 12, weight: "500" },
-          usePointStyle: true,
+  // Re-derive activity chart data whenever timeRange changes
+  const activityData = useMemo(() => {
+    const range = ACTIVITY_DATA_BY_RANGE[timeRange];
+    return {
+      labels: range.labels,
+      datasets: [
+        {
+          label: "Laporan Masuk",
+          data: range.incoming,
+          borderColor: "#4A3AFF",
+          backgroundColor: "rgba(74, 58, 255, 0.1)",
+          tension: 0.4,
+          fill: true,
         },
-      },
-      tooltip: {
-        backgroundColor: "rgba(0, 0, 0, 0.8)",
-        padding: 12,
-        titleFont: { size: 14, weight: "bold" },
-        bodyFont: { size: 13 },
-        cornerRadius: 8,
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        grid: { color: "rgba(0, 0, 0, 0.05)" },
-        ticks: { font: { size: 11 } },
-      },
-      x: {
-        grid: { display: false },
-        ticks: { font: { size: 11 } },
-      },
-    },
-  };
-
-  // Activity Chart Data
-  const activityData = {
-    labels: ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"],
-    datasets: [
-      {
-        label: "Laporan Masuk",
-        data: [45, 52, 38, 65, 58, 42, 48],
-        borderColor: "#4A3AFF",
-        backgroundColor: "rgba(74, 58, 255, 0.1)",
-        tension: 0.4,
-        fill: true,
-      },
-      {
-        label: "Diselesaikan",
-        data: [32, 40, 28, 48, 42, 35, 38],
-        borderColor: "#10B981",
-        backgroundColor: "rgba(16, 185, 129, 0.1)",
-        tension: 0.4,
-        fill: true,
-      },
-    ],
-  };
-
-  // Category Chart Data
-  const categoryData = {
-    labels: [
-      "Elektronik",
-      "Dokumen",
-      "Tas & Dompet",
-      "Kendaraan",
-      "Pakaian",
-      "Lainnya",
-    ],
-    datasets: [
-      {
-        label: "Jumlah Laporan",
-        data: [125, 98, 87, 65, 48, 67],
-        backgroundColor: [
-          "#4A3AFF",
-          "#10B981",
-          "#F59E0B",
-          "#EF4444",
-          "#8B5CF6",
-          "#6B7280",
-        ],
-        borderWidth: 0,
-      },
-    ],
-  };
-
-  // Status Distribution Data
-  const statusData = {
-    labels: ["Pending", "Proses", "Selesai", "Ditolak"],
-    datasets: [
-      {
-        data: [134, 128, 356, 22],
-        backgroundColor: ["#F59E0B", "#3B82F6", "#10B981", "#EF4444"],
-        borderWidth: 0,
-      },
-    ],
-  };
-
-  // Recent Activity
-  const recentActivities = [
-    {
-      id: 1,
-      user: "Ryan Pratama",
-      action: "membuat laporan baru",
-      item: "Laptop Dell",
-      time: "5 menit lalu",
-      type: "report",
-    },
-    {
-      id: 2,
-      user: "Admin Sistem",
-      action: "mengubah status",
-      item: "Laporan #1234",
-      time: "15 menit lalu",
-      type: "update",
-    },
-    {
-      id: 3,
-      user: "Siti Nurhaliza",
-      action: "mengembalikan barang",
-      item: "Tas Ransel",
-      time: "1 jam lalu",
-      type: "return",
-    },
-    {
-      id: 4,
-      user: "Ahmad Zaki",
-      action: "mendaftar sebagai user",
-      item: null,
-      time: "2 jam lalu",
-      type: "user",
-    },
-  ];
-
-  // Top Locations
-  const topLocations = [
-    { name: "Smart Building", count: 142, percentage: 29 },
-    { name: "Kampus Dago", count: 98, percentage: 20 },
-    { name: "Lab Komputer", count: 76, percentage: 15 },
-    { name: "Parkiran Utama", count: 54, percentage: 11 },
-    { name: "Lainnya", count: 120, percentage: 25 },
-  ];
+        {
+          label: "Diselesaikan",
+          data: range.completed,
+          borderColor: "#10B981",
+          backgroundColor: "rgba(16, 185, 129, 0.1)",
+          tension: 0.4,
+          fill: true,
+        },
+      ],
+    };
+  }, [timeRange]);
 
   return (
     <AdminLayout
@@ -221,7 +259,7 @@ const DashboardAdmin = () => {
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        {/* Activity Chart - Takes 2 columns */}
+        {/* Activity Chart — spans 2 columns */}
         <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -243,7 +281,8 @@ const DashboardAdmin = () => {
             </select>
           </div>
           <div className="h-80">
-            <Line data={activityData} options={chartOptions} />
+            {/* activityData now updates when timeRange changes */}
+            <Line data={activityData} options={AXIS_CHART_OPTIONS} />
           </div>
         </div>
 
@@ -252,19 +291,12 @@ const DashboardAdmin = () => {
           <h3 className="text-lg font-bold text-gray-800 mb-2">
             📊 Status Laporan
           </h3>
-          <p className="text-sm text-gray-500 mb-6">Distribusi status saat ini</p>
+          <p className="text-sm text-gray-500 mb-6">
+            Distribusi status saat ini
+          </p>
           <div className="h-80 flex items-center justify-center">
-            <Doughnut
-              data={statusData}
-              options={{
-                ...chartOptions,
-                cutout: "70%",
-                plugins: {
-                  ...chartOptions.plugins,
-                  legend: { position: "bottom" },
-                },
-              }}
-            />
+            {/* Uses DOUGHNUT_OPTIONS — no scales, has cutout */}
+            <Doughnut data={STATUS_DATA} options={DOUGHNUT_OPTIONS} />
           </div>
         </div>
       </div>
@@ -280,7 +312,7 @@ const DashboardAdmin = () => {
             Distribusi berdasarkan jenis barang
           </p>
           <div className="h-80">
-            <Bar data={categoryData} options={chartOptions} />
+            <Bar data={CATEGORY_DATA} options={AXIS_CHART_OPTIONS} />
           </div>
         </div>
 
@@ -293,7 +325,7 @@ const DashboardAdmin = () => {
             Area dengan laporan terbanyak
           </p>
           <div className="space-y-4">
-            {topLocations.map((location, index) => (
+            {TOP_LOCATIONS.map((location, index) => (
               <div key={index}>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-3">
@@ -317,7 +349,7 @@ const DashboardAdmin = () => {
                   <div
                     className="bg-gradient-to-r from-[#4A3AFF] to-[#5B4CFF] h-full transition-all duration-500"
                     style={{ width: `${location.percentage}%` }}
-                  ></div>
+                  />
                 </div>
               </div>
             ))}
@@ -336,12 +368,18 @@ const DashboardAdmin = () => {
               Timeline aktivitas sistem real-time
             </p>
           </div>
-          <button className="text-sm text-[#4A3AFF] font-medium hover:underline">
+          <button
+            className="text-sm text-[#4A3AFF] font-medium hover:underline"
+            onClick={() => {
+              // TODO: navigate to full activity log page
+              // e.g. navigate("/admin/activity") with react-router
+            }}
+          >
             Lihat Semua
           </button>
         </div>
         <div className="space-y-4">
-          {recentActivities.map((activity) => (
+          {RECENT_ACTIVITIES.map((activity) => (
             <div
               key={activity.id}
               className="flex items-start gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
@@ -351,19 +389,19 @@ const DashboardAdmin = () => {
                   activity.type === "report"
                     ? "bg-blue-100"
                     : activity.type === "update"
-                    ? "bg-yellow-100"
-                    : activity.type === "return"
-                    ? "bg-green-100"
-                    : "bg-purple-100"
+                      ? "bg-yellow-100"
+                      : activity.type === "return"
+                        ? "bg-green-100"
+                        : "bg-purple-100"
                 }`}
               >
                 {activity.type === "report"
                   ? "📝"
                   : activity.type === "update"
-                  ? "🔄"
-                  : activity.type === "return"
-                  ? "✅"
-                  : "👤"}
+                    ? "🔄"
+                    : activity.type === "return"
+                      ? "✅"
+                      : "👤"}
               </div>
               <div className="flex-1">
                 <p className="text-sm text-gray-800">

@@ -7,7 +7,7 @@ import {
   getAllReport,
   getFoundCategories,
   getFoundStatuses,
-  // getRooms,
+  getBuildings,
 } from "../services/report";
 import { useLocation, useSearchParams } from "react-router-dom";
 
@@ -20,7 +20,6 @@ const Laporan = () => {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Get all data
   const [categories, setCategories] = useState([]);
   const [statuses, setStatuses] = useState([]);
   const [rooms, setRooms] = useState([]);
@@ -47,15 +46,26 @@ const Laporan = () => {
   useEffect(() => {
     const fetchMasterData = async () => {
       try {
-        // const [catRes, statusRes, roomRes] = await Promise.all([
-        const [catRes, statusRes] = await Promise.all([
+        const [catRes, statusRes, buildingRes] = await Promise.all([
           getFoundCategories(),
           getFoundStatuses(),
-          // getRooms(),
+          getBuildings(),
         ]);
+
         setCategories(catRes.data.data.data ?? []);
         setStatuses(statusRes.data.data.data ?? []);
-        // setRooms(roomRes.data.data.data ?? []);
+
+        const buildings = buildingRes.data.data ?? [];
+        const flatRooms = buildings.flatMap((building) =>
+          building.rooms.map((room) => ({
+            id: room.id,
+            name_room: room.name_room,
+            building_name: building.building_name,
+
+            label: `R${room.name_room} (${building.building_name})`,
+          })),
+        );
+        setRooms(flatRooms);
       } catch (error) {
         console.error("Failed to fetch master data:", error);
       }
@@ -73,7 +83,7 @@ const Laporan = () => {
     const statusName = searchParams.get("status");
     const foundName = searchParams.get("found_name");
     const categoryName = searchParams.get("category");
-    const locationName = searchParams.get("location");
+    const locationLabel = searchParams.get("location");
 
     const filters = {};
 
@@ -88,8 +98,8 @@ const Laporan = () => {
       const found = categories.find((c) => c.name === categoryName);
       if (found) filters.found_category_id = found.id;
     }
-    if (locationName) {
-      const found = rooms.find((r) => r.name === locationName);
+    if (locationLabel) {
+      const found = rooms.find((r) => r.label === locationLabel);
       if (found) filters.room_id = found.id;
     }
 
@@ -321,7 +331,7 @@ const Laporan = () => {
           </button>
         </div>
 
-        {/* Dropdown Lokasi — dari API */}
+        {/* Dropdown Lokasi */}
         {showLocationFilter && (
           <div className="bg-white rounded-2xl shadow-lg p-5 mb-6">
             <h3 className="text-center text-[#3F35D3] font-semibold text-lg mb-4">
@@ -341,21 +351,22 @@ const Laporan = () => {
               {rooms.map((room) => (
                 <button
                   key={room.id}
-                  onClick={() => handleLocationFilter(room.name)}
+                  onClick={() => handleLocationFilter(room.label)}
                   className={`w-full py-3 px-4 rounded-full border text-sm ${
-                    selectedFilters.location === room.name
+                    selectedFilters.location === room.label
                       ? "border-[#3F35D3] bg-[#3F35D3] text-white"
                       : "border-gray-300 bg-white text-gray-700"
                   }`}
                 >
-                  {room.name}
+                  {/* ✅ Tampilkan format "5001 (Dago)" */}
+                  {room.label}
                 </button>
               ))}
             </div>
           </div>
         )}
 
-        {/* Dropdown Kategori — dari API */}
+        {/* Dropdown Kategori */}
         {showCategoryFilter && (
           <div className="bg-white rounded-2xl shadow-lg p-5 mb-6">
             <h3 className="text-center text-[#3F35D3] font-semibold text-lg mb-4">
@@ -430,11 +441,13 @@ const Laporan = () => {
                   item.found_images?.[0]?.found_img_url ??
                   "https://placehold.co/400x300?text=No+Image"
                 }
-                location={item.room.no_room}
-                date={item.found_date}
-                status={item.status.name}
-                category={item.category.name}
-                building={item.room.building.description}
+                location={
+                  item.room?.name_room ? `R${item.room.name_room}` : "-"
+                }
+                date={item.found_date?.split(" ")[0]}
+                status={item.status?.name ?? "-"}
+                category={item.category?.name ?? "-"}
+                building={item.room?.building?.description ?? "-"}
               />
             ))
           )}

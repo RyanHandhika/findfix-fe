@@ -1,14 +1,21 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
-import { addNewReport } from "../services/report";
+import {
+  addNewReport,
+  getFoundCategories,
+  getFoundStatuses,
+  getBuildings,
+} from "../services/report";
 
 const TambahLaporan = () => {
   const navigate = useNavigate();
 
   const [categories, setCategories] = useState([]);
   const [statuses, setStatuses] = useState([]);
+  const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
+
   const [formData, setFormData] = useState({
     room_id: "",
     found_name: "",
@@ -19,30 +26,38 @@ const TambahLaporan = () => {
     found_date: new Date().toISOString().split("T")[0],
     found_img: [],
   });
+
   const [imagePreview, setImagePreview] = useState([]);
   const [showHelp, setShowHelp] = useState(false);
 
-  // Fetch categories dan statuses dari API
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
 
-        // Fetch categories
-        const categoriesResponse = await fetch(
-          "/api/founds/get-found-category",
-        );
-        const categoriesData = await categoriesResponse.json();
-        setCategories(categoriesData);
+        const [catRes, statusRes, buildingRes] = await Promise.all([
+          getFoundCategories(),
+          getFoundStatuses(),
+          getBuildings(),
+        ]);
 
-        // Fetch statuses
-        const statusesResponse = await fetch("/api/founds/get-found-status");
-        const statusesData = await statusesResponse.json();
-        setStatuses(statusesData);
+        setCategories(catRes.data.data.data ?? []);
+
+        const allStatuses = statusRes.data.data.data ?? [];
+        setStatuses(allStatuses.slice(0, 2));
+
+        const buildings = buildingRes.data.data ?? [];
+        const flatRooms = buildings.flatMap((building) =>
+          building.rooms.map((room) => ({
+            id: room.id,
+            label: `${room.name_room} - ${room.description} (${building.building_name})`,
+          })),
+        );
+        setRooms(flatRooms);
       } catch (error) {
         console.error("Error fetching data:", error);
 
-        // Fallback ke data hardcoded jika API gagal
+        // Fallback hardcoded jika API gagal
         setCategories([
           { id: 1, name: "Elektronik" },
           { id: 2, name: "Dokumen dan Identitas" },
@@ -51,11 +66,11 @@ const TambahLaporan = () => {
           { id: 5, name: "Pakaian dan Aksesoris" },
           { id: 6, name: "Lainnya" },
         ]);
-
         setStatuses([
           { id: 1, name: "Ditemukan" },
           { id: 2, name: "Hilang" },
         ]);
+        setRooms([]);
       } finally {
         setLoading(false);
       }
@@ -66,17 +81,11 @@ const TambahLaporan = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
+    setFormData({ ...formData, [name]: value });
   };
 
   const handleStatusChange = (statusId) => {
-    setFormData({
-      ...formData,
-      found_status_id: statusId.toString(),
-    });
+    setFormData({ ...formData, found_status_id: statusId.toString() });
   };
 
   const handleImageUpload = (e) => {
@@ -93,27 +102,20 @@ const TambahLaporan = () => {
     }));
 
     setImagePreview([...imagePreview, ...newImages]);
-    setFormData({
-      ...formData,
-      found_img: [...formData.found_img, ...files],
-    });
+    setFormData({ ...formData, found_img: [...formData.found_img, ...files] });
   };
 
   const removeImage = (index) => {
-    const newPreviews = imagePreview.filter((_, i) => i !== index);
-    const newImages = formData.found_img.filter((_, i) => i !== index);
-
-    setImagePreview(newPreviews);
+    setImagePreview(imagePreview.filter((_, i) => i !== index));
     setFormData({
       ...formData,
-      found_img: newImages,
+      found_img: formData.found_img.filter((_, i) => i !== index),
     });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validasi
     if (!formData.found_name) {
       alert("Judul/Nama Barang harus diisi");
       return;
@@ -127,7 +129,7 @@ const TambahLaporan = () => {
       return;
     }
     if (!formData.room_id) {
-      alert("Lokasi Terakhir harus diisi");
+      alert("Lokasi Terakhir harus dipilih");
       return;
     }
     if (formData.found_img.length === 0) {
@@ -135,7 +137,6 @@ const TambahLaporan = () => {
       return;
     }
 
-    // Buat FormData untuk upload file
     const submitData = new FormData();
     submitData.append("room_id", formData.room_id);
     submitData.append("found_name", formData.found_name);
@@ -144,15 +145,12 @@ const TambahLaporan = () => {
     submitData.append("found_description", formData.found_description);
     submitData.append("found_phone_number", formData.found_phone_number);
     submitData.append("found_date", formData.found_date);
-
-    // Append multiple images
-    formData.found_img.forEach((image) => {
-      submitData.append("found_img[]", image);
-    });
+    formData.found_img.forEach((image) =>
+      submitData.append("found_img[]", image),
+    );
 
     try {
-      const response = await addNewReport(submitData);
-      console.log("Success:", response);
+      await addNewReport(submitData);
       alert("Laporan berhasil ditambahkan!");
       navigate("/laporan");
     } catch (error) {
@@ -161,7 +159,6 @@ const TambahLaporan = () => {
     }
   };
 
-  // Loading state
   if (loading) {
     return (
       <div className="min-h-screen bg-[#4A3AFF] flex items-center justify-center">
@@ -358,14 +355,14 @@ const TambahLaporan = () => {
             />
           </div>
 
-          {/* Lokasi Terakhir (Room ID) */}
+          {/* ✅ Lokasi Terakhir — Dropdown dari API */}
           <div className="mb-5">
             <label className="block text-black font-semibold text-base mb-2">
               Lokasi Terakhir
             </label>
             <div className="relative">
               <svg
-                className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
+                className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none"
                 fill="currentColor"
                 viewBox="0 0 20 20"
               >
@@ -375,14 +372,33 @@ const TambahLaporan = () => {
                   clipRule="evenodd"
                 />
               </svg>
-              <input
-                type="text"
+              <select
                 name="room_id"
                 value={formData.room_id}
                 onChange={handleInputChange}
-                placeholder="Contoh: 1 (untuk Gedung Perpustakaan)"
-                className="w-full bg-white rounded-2xl pl-12 pr-5 py-4 text-sm text-gray-700 placeholder-gray-400 outline-none border-2 border-transparent focus:border-[#4A3AFF] focus:shadow-lg focus:shadow-[#4A3AFF]/20 transition-all"
-              />
+                className="w-full bg-white rounded-2xl pl-12 pr-10 py-4 text-sm text-gray-700 outline-none border-2 border-transparent focus:border-[#4A3AFF] focus:shadow-lg focus:shadow-[#4A3AFF]/20 transition-all appearance-none"
+              >
+                <option value="">Pilih Lokasi</option>
+                {rooms.map((room) => (
+                  // ✅ value = id (yang dikirim ke backend), tampilan = label
+                  <option key={room.id} value={room.id}>
+                    {room.label}
+                  </option>
+                ))}
+              </select>
+              <svg
+                className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
             </div>
           </div>
 
