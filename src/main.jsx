@@ -19,6 +19,7 @@ import Statistik from "./pages/Statistik.jsx";
 import Profile from "./pages/Profile.jsx";
 import TambahLaporan from "./pages/TambahLaporan.jsx";
 import DashboardAdmin from "./pages/DashboardAdmin.jsx";
+import Activity from "./pages/Activity.jsx";
 
 createRoot(document.getElementById("root")).render(
   <BrowserRouter>
@@ -39,6 +40,7 @@ createRoot(document.getElementById("root")).render(
           <Route path="statistik" element={<Statistik />} />
           <Route path="profile" element={<Profile />} />
           <Route path="tambah-laporan" element={<TambahLaporan />} />
+          <Route path="activity" element={<Activity />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

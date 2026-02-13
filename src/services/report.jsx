@@ -26,6 +26,12 @@ const getAllReport = (filters = {}) => {
   });
 };
 
+const getReportByStatus = (statusId) => {
+  return api.get("/founds/get-founds", {
+    params: { found_status_id: statusId },
+  });
+};
+
 const addNewReport = async (formData) => {
   try {
     const response = await api.post("/founds/create-report", formData, {
@@ -44,6 +50,7 @@ export {
   getReportStats,
   getNewestReport,
   getAllReport,
+  getReportByStatus,
   addNewReport,
   getFoundCategories,
   getFoundStatuses,
