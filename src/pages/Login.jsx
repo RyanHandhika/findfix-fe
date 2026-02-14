@@ -9,20 +9,40 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setIsLoading(true);
 
     try {
       const res = await login({ email, password });
-      localStorage.setItem("token", res.data.data.token);
-      navigate("/home");
+      const userRoleId = res.data.data.user?.user_role_id;
+
+      if (userRoleId === 1) {
+        navigate("/dashboard");
+      } else {
+        navigate("/home");
+      }
     } catch (err) {
-      setError(
-        err.response?.data?.message || "Invalid login, please try again",
-      );
+      const status = err.response?.status;
+      if (status === 401) {
+        setError("Email atau password salah. Silakan coba lagi.");
+      } else if (status === 422) {
+        setError("Format email tidak valid.");
+      } else if (status === 429) {
+        setError("Terlalu banyak percobaan. Coba lagi beberapa saat.");
+      } else if (!err.response) {
+        setError("Tidak dapat terhubung ke server. Periksa koneksi Anda.");
+      } else {
+        setError(
+          err.response?.data?.message || "Login gagal. Silakan coba lagi.",
+        );
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -31,7 +51,7 @@ const Login = () => {
       <div className="min-h-screen bg-indigo-700 flex flex-col font-poppins">
         <div className="h-24 px-4 flex items-center text-white">
           <Link to="/">
-            <button className="text-xl flex items-center">
+            <button type="button" className="text-xl flex items-center">
               <MdArrowBackIos />
               <h1 className="text-lg ml-3 font-semibold">Sign in</h1>
             </button>
@@ -54,37 +74,49 @@ const Login = () => {
             </div>
           </div>
 
-          {error && <p className="text-red">{error}</p>}
+          {error && (
+            <div className="flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 mb-4">
+              <p className="text-sm font-medium">
+                Invalid login, please try again
+              </p>
+            </div>
+          )}
 
           <div className="space-y-4">
             <input
               type="email"
               placeholder="Email"
+              value={email}
               className="w-full border rounded-xl px-4 py-3 text-sm outline-none focus:border-indigo-500"
               onChange={(e) => setEmail(e.target.value)}
+              required
             />
-
             <input
               type="password"
               placeholder="Password"
+              value={password}
               className="w-full border rounded-xl px-4 py-3 text-sm outline-none focus:border-indigo-500"
               onChange={(e) => setPassword(e.target.value)}
+              required
             />
           </div>
 
           <div className="text-right mt-2">
-            <Link to="/forgot-password">
-              <button className="text-xs text-gray-400">
-                Forgot your password ?
-              </button>
+            <Link to="/forgot-password" className="text-xs text-gray-400">
+              Forgot your password?
             </Link>
           </div>
 
           <button
             type="submit"
-            className="w-full mt-6 py-3 rounded-full bg-indigo-700 text-white font-semibold"
+            disabled={isLoading}
+            className={`w-full mt-6 py-3 rounded-full text-white font-semibold transition-all ${
+              isLoading
+                ? "bg-indigo-400 cursor-not-allowed"
+                : "bg-indigo-700 hover:bg-indigo-800 active:scale-95"
+            }`}
           >
-            Sign in
+            {isLoading ? "Signing in..." : "Sign in"}
           </button>
         </div>
       </div>

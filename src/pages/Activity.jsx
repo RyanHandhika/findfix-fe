@@ -137,14 +137,17 @@ const Activity = () => {
 
   const filteredReports = allReports.filter((f) => {
     if (activeTab === "all") return true;
-    if (activeTab === "found") return f.status?.name === "Ditemukan";
+    if (activeTab === "found")
+      return (
+        f.status?.name === "Ditemukan" || f.status?.name === "Dikembalikan"
+      );
     if (activeTab === "lost") return f.status?.name === "Hilang";
     return true;
   });
 
   const countAll = allReports.length;
   const countFound = allReports.filter(
-    (f) => f.status?.name === "Ditemukan",
+    (f) => f.status?.name === "Ditemukan" || f.status?.name === "Dikembalikan",
   ).length;
   const countLost = allReports.filter(
     (f) => f.status?.name === "Hilang",

@@ -11,6 +11,39 @@ import {
 } from "../services/report";
 import { useLocation, useSearchParams } from "react-router-dom";
 
+const getLastDateFromTimeOption = (option) => {
+  const now = new Date();
+  switch (option) {
+    case "Hari Ini":
+      return now.toISOString().split("T")[0];
+    case "3 Hari Terakhir": {
+      const d = new Date(now);
+      d.setDate(d.getDate() - 3);
+      return d.toISOString().split("T")[0];
+    }
+    case "7 Hari Terakhir": {
+      const d = new Date(now);
+      d.setDate(d.getDate() - 7);
+      return d.toISOString().split("T")[0];
+    }
+    case "30 Hari Terakhir": {
+      const d = new Date(now);
+      d.setDate(d.getDate() - 30);
+      return d.toISOString().split("T")[0];
+    }
+    default:
+      return null;
+  }
+};
+
+const timeOptions = [
+  "Semua Waktu",
+  "Hari Ini",
+  "3 Hari Terakhir",
+  "7 Hari Terakhir",
+  "30 Hari Terakhir",
+];
+
 const Laporan = () => {
   const [showLocationFilter, setShowLocationFilter] = useState(false);
   const [showCategoryFilter, setShowCategoryFilter] = useState(false);
@@ -29,18 +62,10 @@ const Laporan = () => {
   const searchRef = useRef(null);
   const debounceRef = useRef(null);
 
-  const timeOptions = [
-    "Semua Waktu",
-    "Hari Ini",
-    "3 Hari Terakhir",
-    "7 Hari Terakhir",
-    "30 Hari Terakhir",
-  ];
-
   const [selectedFilters, setSelectedFilters] = useState({
     location: searchParams.get("location") ?? "Semua Lokasi",
     category: searchParams.get("category") ?? "Semua Kategori",
-    time: "Semua Waktu",
+    time: searchParams.get("time") ?? "Semua Waktu",
   });
 
   useEffect(() => {
@@ -61,7 +86,6 @@ const Laporan = () => {
             id: room.id,
             name_room: room.name_room,
             building_name: building.building_name,
-
             label: `R${room.name_room} (${building.building_name})`,
           })),
         );
@@ -84,6 +108,7 @@ const Laporan = () => {
     const foundName = searchParams.get("found_name");
     const categoryName = searchParams.get("category");
     const locationLabel = searchParams.get("location");
+    const timeOption = searchParams.get("time");
 
     const filters = {};
 
@@ -101,6 +126,11 @@ const Laporan = () => {
     if (locationLabel) {
       const found = rooms.find((r) => r.label === locationLabel);
       if (found) filters.room_id = found.id;
+    }
+
+    if (timeOption && timeOption !== "Semua Waktu") {
+      const lastDate = getLastDateFromTimeOption(timeOption);
+      if (lastDate) filters.last_date = lastDate;
     }
 
     setLoading(true);
@@ -180,10 +210,22 @@ const Laporan = () => {
     [setSearchParams],
   );
 
-  const handleTimeFilter = useCallback((option) => {
-    setSelectedFilters((prev) => ({ ...prev, time: option }));
-    setShowTimeFilter(false);
-  }, []);
+  const handleTimeFilter = useCallback(
+    (option) => {
+      setSelectedFilters((prev) => ({ ...prev, time: option }));
+      setShowTimeFilter(false);
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        if (option === "Semua Waktu") {
+          next.delete("time");
+        } else {
+          next.set("time", option);
+        }
+        return next;
+      });
+    },
+    [setSearchParams],
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#4A3AFF]">
@@ -231,22 +273,6 @@ const Laporan = () => {
 
         {/* Filter Buttons */}
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-          <button className="w-10 h-10 rounded-full border border-gray-300 bg-white flex items-center justify-center flex-shrink-0">
-            <svg
-              className="w-5 h-5 text-gray-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 6h16M4 12h16M4 18h16"
-              />
-            </svg>
-          </button>
-
           {/* Lokasi */}
           <button
             onClick={() => {
@@ -305,14 +331,17 @@ const Laporan = () => {
             </svg>
           </button>
 
-          {/* Waktu */}
           <button
             onClick={() => {
               setShowTimeFilter(!showTimeFilter);
               setShowLocationFilter(false);
               setShowCategoryFilter(false);
             }}
-            className="px-5 py-2.5 rounded-full border border-gray-300 text-gray-700 text-sm font-medium bg-white flex items-center gap-1 flex-shrink-0"
+            className={`px-5 py-2.5 rounded-full border text-sm font-medium bg-white flex items-center gap-1 flex-shrink-0 transition-colors ${
+              selectedFilters.time !== "Semua Waktu"
+                ? "border-[#3F35D3] text-[#3F35D3]"
+                : "border-gray-300 text-gray-700"
+            }`}
           >
             {selectedFilters.time}
             <svg
@@ -358,7 +387,6 @@ const Laporan = () => {
                       : "border-gray-300 bg-white text-gray-700"
                   }`}
                 >
-                  {/* ✅ Tampilkan format "5001 (Dago)" */}
                   {room.label}
                 </button>
               ))}

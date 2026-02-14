@@ -5,42 +5,7 @@ import Header from "../components/Header";
 import { IoIosArrowForward } from "react-icons/io";
 import { logout, getMe } from "../services/auth";
 import { getAllReport } from "../services/report";
-
-const BADGES = [
-  {
-    id: "super_find_hero",
-    name: "Super Find Hero",
-    description: "Menemukan lebih dari 10 barang",
-    icon: "🏆",
-    color: "bg-yellow-50",
-    iconColor: "text-yellow-500",
-    minFound: 10,
-  },
-  {
-    id: "honesty_hero",
-    name: "Honesty Hero",
-    description: "Menemukan lebih dari 3 barang",
-    icon: "⭐",
-    color: "bg-blue-50",
-    iconColor: "text-blue-500",
-    minFound: 3,
-  },
-  {
-    id: "eagle_eye",
-    name: "Eagle Eye",
-    description: "Orang pertama yang melaporkan di lokasi tertentu",
-    icon: "👁️",
-    color: "bg-orange-50",
-    iconColor: "text-orange-500",
-    minFound: 1,
-  },
-];
-
-const getBadge = (foundCount) => {
-  if (foundCount > 10) return BADGES[0]; // Super Find Hero
-  if (foundCount > 3) return BADGES[1]; // Honesty Hero
-  return BADGES[2]; // Eagle Eye (default)
-};
+import { BADGES, getBadge, countFoundReports } from "../services/badges";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -54,26 +19,23 @@ const Profile = () => {
       try {
         setLoading(true);
 
-        const [userRes, allReportsRes, foundReportsRes] = await Promise.all([
+        const [userRes, allReportsRes] = await Promise.all([
           getMe(),
           getAllReport(),
-          getAllReport({ found_status_id: 1 }),
         ]);
 
         const currentUser = userRes;
         setUser(currentUser);
 
         const allFounds = allReportsRes.data.data.founds ?? [];
-        const userTotalReports = allFounds.filter(
-          (f) => f.user_id === currentUser.data.id,
-        );
-        setTotalReports(userTotalReports.length);
 
-        const foundFounds = foundReportsRes.data.data.founds ?? [];
-        const userFoundReports = foundFounds.filter(
+        const myReports = allFounds.filter(
           (f) => f.user_id === currentUser.data.id,
         );
-        setFoundReports(userFoundReports.length);
+        setTotalReports(myReports.length);
+
+        const foundCount = countFoundReports(allFounds, currentUser.data.id);
+        setFoundReports(foundCount);
       } catch (error) {
         console.error("Failed to fetch profile data:", error);
       } finally {
@@ -96,16 +58,14 @@ const Profile = () => {
       <Header />
 
       <div className="bg-white rounded-t-[32px] mt-6 px-5 pt-6">
-        {/* Badge Section */}
+        {/* Current Badge */}
         <p className="text-sm font-semibold text-gray-400 mb-3 tracking-wide uppercase">
           Current Badge
         </p>
         <div
           className={`${currentBadge.color} rounded-2xl p-4 flex items-center gap-4 mb-5`}
         >
-          <div
-            className={`w-12 h-12 rounded-xl bg-white/60 flex items-center justify-center`}
-          >
+          <div className="w-12 h-12 rounded-xl bg-white/60 flex items-center justify-center">
             <span className="text-2xl">{currentBadge.icon}</span>
           </div>
           <div>
@@ -114,7 +74,7 @@ const Profile = () => {
           </div>
         </div>
 
-        {/* ✅ Statistik */}
+        {/* Statistik */}
         <div className="grid grid-cols-2 gap-4 mb-6">
           <div className="bg-white rounded-2xl p-4 text-center shadow-sm border">
             <p className="text-2xl font-bold text-gray-800">{totalReports}</p>
@@ -125,7 +85,7 @@ const Profile = () => {
           <div className="bg-white rounded-2xl p-4 text-center shadow-sm border">
             <p className="text-2xl font-bold text-[#4A3AFF]">{foundReports}</p>
             <p className="text-xs text-gray-400 tracking-wide uppercase mt-1">
-              Barang Ditemukan
+              Barang Temuan
             </p>
           </div>
         </div>

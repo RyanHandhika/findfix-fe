@@ -106,7 +106,7 @@ const Home = () => {
       icon: "🕐",
       label: "Aktivitas",
       color: "bg-purple-50",
-      onClick: () => navigate("/profile"),
+      onClick: () => navigate("/activity"),
     },
   ];
 

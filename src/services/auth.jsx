@@ -15,4 +15,13 @@ const logout = () => {
   localStorage.removeItem("user");
 };
 
-export { login, getMe, logout };
+const getUserRole = () => {
+  const user = localStorage.getItem("user");
+  if (!user) return null;
+  return JSON.parse(user)?.user_role_id ?? null;
+};
+
+const isAdmin = () => getUserRole() === 1;
+const isUser = () => getUserRole() === 2;
+
+export { login, getMe, logout, getUserRole, isAdmin, isUser };
