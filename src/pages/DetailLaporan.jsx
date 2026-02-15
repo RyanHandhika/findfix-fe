@@ -1,62 +1,111 @@
-import { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import Header from "../components/Header";
 import Navbar from "../components/Navbar";
+import { getReportById } from "../services/report";
 
 const FALLBACK_IMAGE =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23e5e7eb'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='16' fill='%239ca3af'%3ENo Image%3C/text%3E%3C/svg%3E";
-const FALLBACK_AVATAR =
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' viewBox='0 0 50 50'%3E%3Crect width='50' height='50' rx='25' fill='%23e5e7eb'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='20' fill='%239ca3af'%3E%3F%3C/text%3E%3C/svg%3E";
+
+const STATUS_STYLE = {
+  Ditemukan: { bg: "bg-green-100", text: "text-green-600" },
+  Hilang: { bg: "bg-red-100", text: "text-red-600" },
+  Dikembalikan: { bg: "bg-blue-100", text: "text-blue-600" },
+  Tersimpan: { bg: "bg-yellow-100", text: "text-yellow-600" },
+};
+
+const formatDate = (d) => {
+  if (!d) return "-";
+  return new Date(d).toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+};
 
 const DetailLaporan = () => {
   const navigate = useNavigate();
-  const location = useLocation();
+  const { id } = useParams();
+
+  const [report, setReport] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [showPhonePopup, setShowPhonePopup] = useState(false);
 
-  const reportData = location.state || {
-    title: "Casan Laptop (hilang)",
-    images: [],
-    type: "Elektronik",
-    date: "02/01/2025",
-    location: "Gedung Baru - Lt5",
-    status: "HILANG",
-    finder: {
-      name: "Kasim Ahmad",
-      role: "Mahasiswa",
-      avatar: null,
-    },
-    description:
-      "Saya kehilangan casan laptop Lenovo di Lt 5 gedung baru, ketika saya sedang mengerjakan tugas kelompok disana.",
-  };
+  useEffect(() => {
+    if (!id) return;
+    const fetchReport = async () => {
+      try {
+        setLoading(true);
+        const res = await getReportById(id);
+        setReport(res.data.data);
+      } catch (e) {
+        console.error(e);
+        setError("Laporan tidak ditemukan.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchReport();
+  }, [id]);
 
-  const isFound = reportData.status === "DITEMUKAN";
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#3F35D3] flex flex-col">
+        <Header />
+        <div className="bg-[#F3F7FF] rounded-t-[32px] mt-6 flex-1 px-4 pt-6">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-12 h-12 bg-gray-200 rounded-full animate-pulse" />
+            <div className="h-6 bg-gray-200 rounded w-40 animate-pulse" />
+          </div>
+          <div className="w-full h-[250px] bg-gray-200 rounded-2xl animate-pulse mb-6" />
+          <div className="space-y-3">
+            <div className="h-8 bg-gray-200 rounded w-3/4 animate-pulse" />
+            <div className="h-4 bg-gray-200 rounded w-full animate-pulse" />
+            <div className="h-4 bg-gray-200 rounded w-2/3 animate-pulse" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !report) {
+    return (
+      <div className="min-h-screen bg-[#3F35D3] flex flex-col">
+        <Header />
+        <div className="bg-[#F3F7FF] rounded-t-[32px] mt-6 flex-1 flex flex-col items-center justify-center px-4">
+          <p className="text-4xl mb-3">😕</p>
+          <p className="text-gray-600 font-semibold mb-1">
+            Laporan tidak ditemukan
+          </p>
+          <p className="text-gray-400 text-sm mb-6">{error}</p>
+          <button
+            onClick={() => navigate("/laporan")}
+            className="px-6 py-2.5 bg-[#3F35D3] text-white rounded-full text-sm font-medium"
+          >
+            Kembali ke Laporan
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const images =
-    reportData.images && reportData.images.length > 0
-      ? reportData.images
+    report.found_images?.length > 0
+      ? report.found_images.map((img) => img.found_img_url)
       : [FALLBACK_IMAGE];
 
-  const nextImage = () => {
+  const statusName = report.status?.name ?? "-";
+  const statusStyle = STATUS_STYLE[statusName] ?? {
+    bg: "bg-gray-100",
+    text: "text-gray-600",
+  };
+
+  const nextImage = () =>
     setCurrentImageIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
-  };
-
-  const prevImage = () => {
+  const prevImage = () =>
     setCurrentImageIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
-  };
-
-  const handleBack = () => {
-    navigate("/laporan");
-  };
-
-  const handleImageError = (e) => {
-    e.target.onerror = null;
-    e.target.src = FALLBACK_IMAGE;
-  };
-
-  const handleAvatarError = (e) => {
-    e.target.onerror = null;
-    e.target.src = FALLBACK_AVATAR;
-  };
 
   return (
     <div className="min-h-screen bg-[#3F35D3]">
@@ -66,7 +115,7 @@ const DetailLaporan = () => {
         {/* Back Button & Title */}
         <div className="flex items-center gap-4 mb-6">
           <button
-            onClick={handleBack}
+            onClick={() => navigate("/laporan")}
             className="w-12 h-12 bg-[#3F35D3] rounded-full flex items-center justify-center hover:bg-[#342CB8] transition-colors"
           >
             <svg
@@ -90,11 +139,13 @@ const DetailLaporan = () => {
         <div className="relative mb-6 rounded-2xl overflow-hidden bg-gray-200">
           <img
             src={images[currentImageIndex]}
-            alt="Report"
+            alt={report.found_name}
             className="w-full h-[250px] object-cover"
-            onError={handleImageError}
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = FALLBACK_IMAGE;
+            }}
           />
-
           {images.length > 1 && (
             <>
               <button
@@ -115,7 +166,6 @@ const DetailLaporan = () => {
                   />
                 </svg>
               </button>
-
               <button
                 onClick={nextImage}
                 className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg hover:bg-white transition-colors"
@@ -134,18 +184,12 @@ const DetailLaporan = () => {
                   />
                 </svg>
               </button>
-
-              {/* Dots Indicator */}
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
                 {images.map((_, index) => (
                   <div
                     key={index}
                     onClick={() => setCurrentImageIndex(index)}
-                    className={`h-2 rounded-full transition-all cursor-pointer ${
-                      index === currentImageIndex
-                        ? "bg-white w-6"
-                        : "bg-white/50 w-2"
-                    }`}
+                    className={`h-2 rounded-full transition-all cursor-pointer ${index === currentImageIndex ? "bg-white w-6" : "bg-white/50 w-2"}`}
                   />
                 ))}
               </div>
@@ -155,7 +199,7 @@ const DetailLaporan = () => {
 
         {/* Title */}
         <h2 className="text-2xl font-bold text-black mb-4">
-          {reportData.title}
+          {report.found_name}
         </h2>
 
         {/* Info Grid */}
@@ -171,11 +215,10 @@ const DetailLaporan = () => {
             <div className="min-w-0">
               <p className="text-xs text-gray-500">Jenis</p>
               <p className="text-sm font-medium text-black break-words">
-                {reportData.type}
+                {report.category?.name ?? "-"}
               </p>
             </div>
           </div>
-
           <div className="flex items-start gap-2">
             <svg
               className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0"
@@ -191,11 +234,10 @@ const DetailLaporan = () => {
             <div className="min-w-0">
               <p className="text-xs text-gray-500">Tanggal</p>
               <p className="text-sm font-medium text-black break-words">
-                {reportData.date}
+                {formatDate(report.found_date)}
               </p>
             </div>
           </div>
-
           <div className="flex items-start gap-2">
             <svg
               className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0"
@@ -209,75 +251,130 @@ const DetailLaporan = () => {
               />
             </svg>
             <div className="min-w-0">
-              <p className="text-xs text-gray-500">Location</p>
-              <p className="text-sm font-medium text-black break-words">
-                {reportData.location}
+              <p className="text-xs text-gray-500">Lokasi</p>
+              <p className="text-sm font-medium text-black">
+                R{report.room?.name_room}
+              </p>
+              <p className="text-xs text-gray-400">
+                {report.room?.building?.building_name}
               </p>
             </div>
           </div>
         </div>
 
-        {/* Contact Person Card */}
-        <div className="bg-white rounded-2xl p-4 mb-6 flex items-center justify-between">
+        {/* Contact Card */}
+        <div className="bg-white rounded-2xl p-4 mb-6 flex items-center justify-between shadow-sm">
           <div className="flex items-center gap-3">
-            <img
-              src={reportData.finder.avatar || FALLBACK_AVATAR}
-              alt={reportData.finder.name}
-              className="w-12 h-12 rounded-full object-cover"
-              onError={handleAvatarError}
-            />
+            <div className="w-11 h-11 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-lg flex-shrink-0">
+              {report.user?.name?.charAt(0).toUpperCase() ?? "?"}
+            </div>
             <div>
               <p className="font-semibold text-black">
-                {reportData.finder.name}
+                {report.user?.name ?? "Tidak diketahui"}
               </p>
-              <p className="text-sm text-gray-500">{reportData.finder.role}</p>
+              <p className="text-xs text-gray-400">Pelapor</p>
             </div>
           </div>
-          <div className="flex gap-2">
-            <button className="w-10 h-10 bg-[#E8F5E9] rounded-full flex items-center justify-center hover:bg-[#C8E6C9] transition-colors">
-              <svg
-                className="w-5 h-5 text-[#4CAF50]"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
-              </svg>
-            </button>
-            <button className="w-10 h-10 bg-[#E3F2FD] rounded-full flex items-center justify-center hover:bg-[#BBDEFB] transition-colors">
-              <svg
-                className="w-5 h-5 text-[#2196F3]"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-                <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
-              </svg>
-            </button>
-          </div>
+          <button
+            onClick={() => setShowPhonePopup(true)}
+            className="w-10 h-10 bg-[#E8F5E9] rounded-full flex items-center justify-center hover:bg-[#C8E6C9] transition-colors"
+          >
+            <svg
+              className="w-5 h-5 text-[#4CAF50]"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+            </svg>
+          </button>
         </div>
 
         {/* Status */}
         <div className="mb-6">
           <h3 className="text-lg font-bold text-black mb-2">Status</h3>
           <span
-            className={`inline-block px-4 py-1.5 rounded-full text-sm font-medium ${
-              isFound
-                ? "bg-green-100 text-green-600"
-                : "bg-red-100 text-red-600"
-            }`}
+            className={`inline-block px-4 py-1.5 rounded-full text-sm font-semibold ${statusStyle.bg} ${statusStyle.text}`}
           >
-            {reportData.status}
+            {statusName}
           </span>
         </div>
 
-        {/* Description */}
-        <div>
-          <h3 className="text-lg font-bold text-black mb-3">Deskripsi</h3>
-          <p className="text-sm text-gray-700 leading-relaxed">
-            {reportData.description}
-          </p>
-        </div>
+        {/* Deskripsi */}
+        {report.found_description && (
+          <div>
+            <h3 className="text-lg font-bold text-black mb-3">Deskripsi</h3>
+            <p className="text-sm text-gray-700 leading-relaxed">
+              {report.found_description}
+            </p>
+          </div>
+        )}
       </div>
+
+      {/* Popup Telepon */}
+      {showPhonePopup && (
+        <div
+          className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-6"
+          onClick={() => setShowPhonePopup(false)}
+        >
+          <div
+            className="relative bg-white rounded-3xl w-full max-w-sm p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-5">
+              <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto" />
+              <button
+                onClick={() => setShowPhonePopup(false)}
+                className="absolute top-4 right-4 w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors"
+              >
+                <svg
+                  className="w-4 h-4 text-gray-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                <svg
+                  className="w-5 h-5 text-green-600"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-xs text-gray-400">Kontak Pelapor</p>
+                <p className="font-semibold text-gray-800">
+                  {report.user?.name ?? "Tidak diketahui"}
+                </p>
+              </div>
+            </div>
+            {report.found_phone_number ? (
+              <div className="bg-gray-50 rounded-2xl p-4 text-center mb-4">
+                <p className="text-2xl font-bold text-gray-800 tracking-wide">
+                  {report.found_phone_number}
+                </p>
+              </div>
+            ) : (
+              <div className="bg-gray-50 rounded-2xl p-5 text-center mb-4">
+                <p className="text-2xl mb-2">📵</p>
+                <p className="text-gray-500 text-sm font-medium">
+                  No telp tidak ditemukan
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <Navbar />
     </div>

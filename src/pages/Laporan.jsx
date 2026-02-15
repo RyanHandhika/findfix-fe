@@ -464,6 +464,7 @@ const Laporan = () => {
             reports.map((item) => (
               <ReportItem
                 key={item.id}
+                id={item.id}
                 title={item.found_name}
                 image={
                   item.found_images?.[0]?.found_img_url ??

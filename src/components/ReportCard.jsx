@@ -1,7 +1,48 @@
+import { useState } from "react";
+
+const Avatar = ({ name = "", src = "" }) => {
+  const [imgError, setImgError] = useState(false);
+
+  const initial = name.trim().charAt(0).toUpperCase();
+
+  const colors = [
+    "bg-blue-400",
+    "bg-purple-400",
+    "bg-green-400",
+    "bg-yellow-400",
+    "bg-red-400",
+    "bg-indigo-400",
+    "bg-pink-400",
+    "bg-teal-400",
+  ];
+  const colorIndex = initial.charCodeAt(0) % colors.length;
+  const bgColor = colors[colorIndex];
+
+  return (
+    <div className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0">
+      {!imgError && src ? (
+        <img
+          src={src}
+          alt={name}
+          className="w-full h-full object-cover"
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        <div
+          className={`w-full h-full ${bgColor} flex items-center justify-center`}
+        >
+          <span className="text-white text-base font-semibold">{initial}</span>
+        </div>
+      )}
+    </div>
+  );
+};
+
 function ReportCard({
   name,
   role,
   time,
+  avatar,
   itemName,
   location,
   description,
@@ -15,13 +56,7 @@ function ReportCard({
       style={{ borderLeft: `4px solid ${borderColor}` }}
     >
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-11 h-11 rounded-full bg-gray-200 overflow-hidden">
-          <img
-            src="/user-avatar.png"
-            alt={name}
-            className="w-full h-full object-cover"
-          />
-        </div>
+        <Avatar name={name} src={avatar} />
         <div>
           <h4 className="font-semibold text-gray-800">{name}</h4>
           <p className="text-xs text-gray-400">

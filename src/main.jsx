@@ -10,6 +10,7 @@ import App from "./App.jsx";
 import LoginPage from "./pages/Login";
 import ForgotPasswordPage from "./pages/ForgotPassword";
 import ResetPasswordPage from "./pages/ResetPassword";
+import Register from "./pages/Register.jsx";
 import Home from "./pages/Home.jsx";
 import Laporan from "./pages/Laporan.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
@@ -39,6 +40,7 @@ createRoot(document.getElementById("root")).render(
           <Route path="login" element={<LoginPage />} />
           <Route path="forgot-password" element={<ForgotPasswordPage />} />
           <Route path="reset-password" element={<ResetPasswordPage />} />
+          <Route path="register" element={<Register />} />
         </Route>
 
         {/* admin */}
@@ -54,7 +56,7 @@ createRoot(document.getElementById("root")).render(
         <Route element={<ProtectedRoute />}>
           <Route path="home" element={<Home />} />
           <Route path="laporan" element={<Laporan />} />
-          <Route path="detail-laporan" element={<DetailLaporan />} />
+          <Route path="laporan/:id" element={<DetailLaporan />} />
           <Route path="statistik" element={<Statistik />} />
           <Route path="profile" element={<Profile />} />
           <Route path="tambah-laporan" element={<TambahLaporan />} />

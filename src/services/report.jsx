@@ -32,6 +32,10 @@ const getReportByStatus = (statusId) => {
   });
 };
 
+const getReportById = (id) => {
+  return api.get(`/founds/get-found/${id}`);
+};
+
 const addNewReport = async (formData) => {
   try {
     const response = await api.post("/founds/create-report", formData, {
@@ -55,4 +59,5 @@ export {
   getFoundCategories,
   getFoundStatuses,
   getBuildings,
+  getReportById,
 };

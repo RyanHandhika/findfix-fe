@@ -180,7 +180,7 @@ const Home = () => {
               role={getRoleName(newestLost.user?.user_role_id)}
               time={timeAgo(newestLost.created_at)}
               itemName={newestLost.found_name}
-              location={newestLost.room?.no_room ?? "-"}
+              location={`R${newestLost.room?.name_room ?? "-"}`}
               description={newestLost.found_description}
               status="HILANG"
               statusColor="red"
@@ -215,7 +215,7 @@ const Home = () => {
               role={getRoleName(newestFound.user?.user_role_id)}
               time={timeAgo(newestFound.created_at)}
               itemName={newestFound.found_name}
-              location={newestFound.room?.no_room ?? "-"}
+              location={`R${newestLost.room?.name_room ?? "-"}`}
               description={newestFound.found_description}
               status="DITEMUKAN"
               statusColor="green"

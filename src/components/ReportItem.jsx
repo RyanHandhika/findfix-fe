@@ -14,26 +14,7 @@ const ReportItem = ({
   const navigate = useNavigate();
 
   const handleDetailClick = () => {
-    // Kirim semua data ke DetailLaporan
-    navigate("/detail-laporan", {
-      state: {
-        id,
-        title,
-        images: [image, image, image], // Bisa diganti dengan array gambar yang berbeda
-        type: category,
-        date,
-        location,
-        status: status.toUpperCase(),
-        category,
-        building,
-        finder: {
-          name: "Kasim Ahmad",
-          role: "Mahasiswa",
-          avatar: "https://via.placeholder.com/50",
-        },
-        description: `Saya kehilangan ${title} di ${location}, ketika saya sedang mengerjakan tugas kelompok disana, ciri cirinya: berwarna hitam, dililit dengan karet, sedikit besar dan berat casannya`,
-      },
-    });
+    navigate(`/laporan/${id}`);
   };
 
   const STATUS_THEME = {
@@ -48,6 +29,10 @@ const ReportItem = ({
     DIKEMBALIKAN: {
       border: "#3B82F6",
       badge: "bg-blue-100 text-blue-600",
+    },
+    TERSIMPAN: {
+      border: "#F59E0B",
+      badge: "bg-yellow-100 text-yellow-600",
     },
   };
 
