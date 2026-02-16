@@ -29,7 +29,7 @@ const AdminLaporan = () => {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
 
-  // Modals
+  // Modal states
   const [detailItem, setDetailItem] = useState(null);
   const [editItem, setEditItem] = useState(null);
   const [newStatusId, setNewStatusId] = useState("");
@@ -37,15 +37,40 @@ const AdminLaporan = () => {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
+  // Verifikasi mode
+  const [verifyMode, setVerifyMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [selectedHubId, setSelectedHubId] = useState("");
+  const [hubs, setHubs] = useState([]);
+  const [verifying, setVerifying] = useState(false);
+  const [verifyResult, setVerifyResult] = useState(null);
+  const [verifyError, setVerifyError] = useState("");
+
   useEffect(() => {
     const init = async () => {
       try {
-        const [userRes, statusRes] = await Promise.all([
+        const [userRes, statusRes, hubsRes] = await Promise.all([
           getMe(),
           getFoundStatuses(),
+          api.get("/hubs/get-hubs"),
         ]);
         setAdmin(userRes.data.data);
         setStatuses(statusRes.data.data.data ?? []);
+
+        const hubList = [];
+        (hubsRes.data.data ?? []).forEach((building) => {
+          (building.rooms ?? []).forEach((room) => {
+            if (room.hub) {
+              hubList.push({
+                id: room.hub.id,
+                name: room.hub.hub_name,
+                building: building.building_name,
+                room: room.name_room,
+              });
+            }
+          });
+        });
+        setHubs(hubList);
       } catch (e) {
         console.error(e);
       }
@@ -102,6 +127,77 @@ const AdminLaporan = () => {
       setDeleting(false);
     }
   };
+
+  const enterVerifyMode = () => {
+    setVerifyMode(true);
+    setSelectedIds([]);
+    setSelectedHubId("");
+    setVerifyError("");
+    setVerifyResult(null);
+  };
+
+  const exitVerifyMode = () => {
+    setVerifyMode(false);
+    setSelectedIds([]);
+    setSelectedHubId("");
+    setVerifyError("");
+    setVerifyResult(null);
+  };
+
+  const toggleSelect = (id) => {
+    setVerifyError("");
+    if (selectedIds.includes(id)) {
+      setSelectedIds(selectedIds.filter((s) => s !== id));
+    } else {
+      if (selectedIds.length >= 2) {
+        setVerifyError("Maksimal 2 laporan yang bisa dipilih sekaligus.");
+        return;
+      }
+      setSelectedIds([...selectedIds, id]);
+    }
+  };
+
+  const handleConfirmVerify = async () => {
+    if (selectedIds.length !== 2) {
+      setVerifyError("Pilih tepat 2 laporan untuk dicocokkan.");
+      return;
+    }
+    const selected = reports.filter((r) => selectedIds.includes(r.id));
+    const hilangItem = selected.find((r) => r.status?.name === "Hilang");
+    const ditemukanItem = selected.find((r) => r.status?.name === "Ditemukan");
+
+    if (!hilangItem || !ditemukanItem) {
+      setVerifyError(
+        "Pilih 1 laporan berstatus Hilang dan 1 laporan berstatus Ditemukan.",
+      );
+      return;
+    }
+    if (!selectedHubId) {
+      setVerifyError("Pilih lokasi hub penyimpanan terlebih dahulu.");
+      return;
+    }
+
+    setVerifying(true);
+    setVerifyError("");
+    try {
+      const res = await api.post("/founds/confirm-found", {
+        report_missing_id: hilangItem.id,
+        report_found_id: ditemukanItem.id,
+        hub_id: Number(selectedHubId),
+      });
+      setVerifyResult(res.data.data);
+      fetchReports();
+    } catch (e) {
+      setVerifyError(
+        e?.response?.data?.message ?? "Gagal melakukan verifikasi. Coba lagi.",
+      );
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const selectedReports = reports.filter((r) => selectedIds.includes(r.id));
+  const canSubmit = selectedIds.length === 2 && !!selectedHubId;
 
   return (
     <AdminLayout admin={admin} pageTitle="Manajemen Laporan">
@@ -162,6 +258,135 @@ const AdminLaporan = () => {
           </div>
         </div>
 
+        {/* tombol verifikasi */}
+        {!verifyMode ? (
+          <button
+            onClick={enterVerifyMode}
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5 py-2.5 rounded-xl shadow-sm transition active:scale-95 text-sm"
+          >
+            🔗 Verifikasi &amp; Cocokkan Laporan
+          </button>
+        ) : (
+          <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-4 space-y-3">
+            {/* Header */}
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="font-bold text-indigo-800 text-sm">
+                  🔗 Mode Verifikasi Aktif
+                </p>
+                <p className="text-indigo-600 text-xs mt-0.5">
+                  Pilih <span className="font-semibold">1 laporan Hilang</span>{" "}
+                  dan <span className="font-semibold">1 laporan Ditemukan</span>{" "}
+                  yang berkaitan, pilih hub, lalu klik Cocokkan.
+                </p>
+              </div>
+              <button
+                onClick={exitVerifyMode}
+                className="text-indigo-400 hover:text-indigo-600 text-xs underline ml-4 flex-shrink-0"
+              >
+                Batalkan
+              </button>
+            </div>
+
+            {/* Selected preview chips */}
+            {selectedReports.length > 0 && (
+              <div className="flex gap-2 flex-wrap">
+                {selectedReports.map((r) => {
+                  const sc = STATUS_STYLE[r.status?.name] ?? {
+                    bg: "bg-gray-100 text-gray-600",
+                    dot: "bg-gray-400",
+                  };
+                  return (
+                    <div
+                      key={r.id}
+                      className="flex items-center gap-2 bg-white border border-indigo-200 rounded-xl px-3 py-1.5"
+                    >
+                      <span
+                        className={`w-2 h-2 rounded-full flex-shrink-0 ${sc.dot}`}
+                      />
+                      <span className="text-xs font-semibold text-gray-700 max-w-[120px] truncate">
+                        {r.found_name}
+                      </span>
+                      <span
+                        className={`text-xs px-1.5 py-0.5 rounded-full whitespace-nowrap ${sc.bg}`}
+                      >
+                        {r.status?.name}
+                      </span>
+                      <button
+                        onClick={() => toggleSelect(r.id)}
+                        className="text-gray-300 hover:text-red-400 text-xs ml-1 flex-shrink-0"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Dropdown hub */}
+            <div>
+              <label className="text-xs font-semibold text-indigo-700 mb-1 block">
+                📍 Lokasi Hub Penyimpanan
+              </label>
+              <select
+                value={selectedHubId}
+                onChange={(e) => {
+                  setSelectedHubId(e.target.value);
+                  setVerifyError("");
+                }}
+                className={`w-full sm:max-w-xs bg-white border rounded-xl py-2.5 px-3 text-sm outline-none transition-colors ${
+                  selectedHubId
+                    ? "border-indigo-400 text-gray-800"
+                    : "border-gray-200 text-gray-400"
+                } focus:border-indigo-500`}
+              >
+                <option value="">-- Pilih Hub --</option>
+                {hubs.map((hub) => (
+                  <option key={hub.id} value={hub.id}>
+                    {hub.name} · {hub.building} (R{hub.room})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Error message */}
+            {verifyError && (
+              <p className="text-red-500 text-xs flex items-center gap-1">
+                <span>⚠️</span> {verifyError}
+              </p>
+            )}
+
+            {/* Action buttons */}
+            <div className="flex gap-2">
+              <button
+                onClick={handleConfirmVerify}
+                disabled={verifying || !canSubmit}
+                className="px-5 py-2 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+              >
+                {verifying ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />{" "}
+                    Memproses...
+                  </>
+                ) : (
+                  <>✅ Cocokkan ({selectedIds.length}/2)</>
+                )}
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedIds([]);
+                  setSelectedHubId("");
+                  setVerifyError("");
+                }}
+                className="px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-xl text-sm hover:bg-gray-50 transition-all"
+              >
+                Reset Pilihan
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Table */}
         <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
           {loading ? (
@@ -178,6 +403,7 @@ const AdminLaporan = () => {
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b border-gray-100">
                   <tr>
+                    {verifyMode && <th className="w-10 px-3 py-3" />}
                     {[
                       "Barang",
                       "Pelapor",
@@ -201,11 +427,41 @@ const AdminLaporan = () => {
                       bg: "bg-gray-100 text-gray-600",
                       dot: "bg-gray-400",
                     };
+                    const isSelected = selectedIds.includes(item.id);
+                    const isSelectable =
+                      verifyMode &&
+                      (item.status?.name === "Hilang" ||
+                        item.status?.name === "Ditemukan");
+
                     return (
                       <tr
                         key={item.id}
-                        className="hover:bg-gray-50 transition-colors"
+                        onClick={() => isSelectable && toggleSelect(item.id)}
+                        className={`transition-colors ${
+                          isSelected
+                            ? "bg-indigo-50 border-l-4 border-indigo-500"
+                            : verifyMode && isSelectable
+                              ? "hover:bg-indigo-50/50 cursor-pointer"
+                              : verifyMode && !isSelectable
+                                ? "opacity-40"
+                                : "hover:bg-gray-50"
+                        }`}
                       >
+                        {verifyMode && (
+                          <td
+                            className="px-3 py-3"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {isSelectable && (
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => toggleSelect(item.id)}
+                                className="w-4 h-4 accent-indigo-600 cursor-pointer"
+                              />
+                            )}
+                          </td>
+                        )}
                         <td className="px-5 py-3">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
@@ -254,7 +510,10 @@ const AdminLaporan = () => {
                         <td className="px-5 py-3 text-gray-400 text-xs whitespace-nowrap">
                           {formatDate(item.found_date)}
                         </td>
-                        <td className="px-5 py-3">
+                        <td
+                          className="px-5 py-3"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <div className="flex items-center gap-1.5">
                             <button
                               onClick={() => setDetailItem(item)}
@@ -293,6 +552,65 @@ const AdminLaporan = () => {
           )}
         </div>
       </div>
+
+      {/* ── Modal Hasil Verifikasi ── */}
+      {verifyResult && (
+        <AdminModal
+          title="✅ Verifikasi Berhasil!"
+          onClose={() => {
+            setVerifyResult(null);
+            exitVerifyMode();
+          }}
+        >
+          <p className="text-gray-500 text-sm mb-4">
+            Kedua laporan berhasil dicocokkan. Status telah diperbarui otomatis:
+          </p>
+          <div className="space-y-3 mb-5">
+            {verifyResult.map((r) => {
+              const statusName =
+                r.found_status_id === 1
+                  ? "Ditemukan"
+                  : r.found_status_id === 2
+                    ? "Hilang"
+                    : r.found_status_id === 3
+                      ? "Dikembalikan"
+                      : "Tersimpan";
+              const sc = STATUS_STYLE[statusName] ?? {
+                bg: "bg-gray-100 text-gray-600",
+                dot: "bg-gray-400",
+              };
+              return (
+                <div
+                  key={r.id}
+                  className="flex items-center gap-3 bg-gray-50 rounded-xl p-3"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-800 text-sm truncate">
+                      {r.found_name}
+                    </p>
+                    <p className="text-gray-400 text-xs">ID: {r.id}</p>
+                  </div>
+                  <span
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap ${sc.bg}`}
+                  >
+                    <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`} />
+                    {statusName}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          <button
+            onClick={() => {
+              setVerifyResult(null);
+              exitVerifyMode();
+            }}
+            className="w-full py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors"
+          >
+            Selesai
+          </button>
+        </AdminModal>
+      )}
 
       {/* Modal Detail */}
       {detailItem && (
@@ -396,7 +714,7 @@ const AdminLaporan = () => {
             <span className="font-semibold text-gray-800">
               "{deleteTarget.found_name}"
             </span>{" "}
-            akan dihapus permanen dan tidak bisa dikembalikan.
+            akan dihapus permanen.
           </p>
           <div className="flex gap-3">
             <button

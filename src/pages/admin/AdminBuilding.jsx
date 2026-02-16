@@ -1,38 +1,63 @@
 import { useEffect, useState } from "react";
 import AdminLayout from "../../components/admin/AdminLayout";
 import AdminModal from "../../components/admin/AdminModal";
-import { getBuildings } from "../../services/report";
 import { getMe } from "../../services/auth";
-import api from "../../services/axios";
+import {
+  getBuildings,
+  createBuilding,
+  updateBuilding,
+  deleteBuilding,
+  createRoom,
+  updateRoom,
+  deleteRoom,
+} from "../../services/building";
 
 const EMPTY_BUILDING_FORM = { building_name: "", description: "" };
-const EMPTY_ROOM_FORM = { name_room: "", description: "" };
+const EMPTY_ROOM_FORM = { name_room: "", room_description: "" };
+const EMPTY_EDIT_ROOM_FORM = { name_room: "", description: "" };
+
+const Field = ({ label, value, onChange, placeholder }) => (
+  <div>
+    <label className="text-gray-500 text-xs font-medium mb-1 block">
+      {label}
+    </label>
+    <input
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-400 bg-gray-50"
+    />
+  </div>
+);
 
 const AdminBuilding = () => {
   const [admin, setAdmin] = useState(null);
   const [buildings, setBuildings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-
-  // Building modals
-  const [showAddBuilding, setShowAddBuilding] = useState(false);
-  const [deleteBuilding, setDeleteBuilding] = useState(null);
-  const [buildingForm, setBuildingForm] = useState(EMPTY_BUILDING_FORM);
-
-  // Room modals
-  const [showAddRoom, setShowAddRoom] = useState(null); // holds building object
-  const [deleteRoom, setDeleteRoom] = useState(null);
-  const [roomForm, setRoomForm] = useState(EMPTY_ROOM_FORM);
-
-  // Expanded buildings
   const [expanded, setExpanded] = useState({});
 
-  const toggleExpand = (id) =>
-    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
+  const [showAddBuilding, setShowAddBuilding] = useState(false);
+  const [editBuilding, setEditBuilding] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [buildingForm, setBuildingForm] = useState(EMPTY_BUILDING_FORM);
+  const [editBuildingForm, setEditBuildingForm] = useState(EMPTY_BUILDING_FORM);
+
+  const [initRooms, setInitRooms] = useState([]);
+  const [initRoomInput, setInitRoomInput] = useState({
+    name_room: "",
+    description: "",
+  });
+
+  const [showAddRoom, setShowAddRoom] = useState(null); // building object
+  const [editRoom, setEditRoom] = useState(null); // room + building_id
+  const [deleteRoomTarget, setDeleteRoomTarget] = useState(null);
+  const [roomForm, setRoomForm] = useState(EMPTY_ROOM_FORM);
+  const [editRoomForm, setEditRoomForm] = useState(EMPTY_EDIT_ROOM_FORM);
 
   useEffect(() => {
     getMe()
-      .then((res) => setAdmin(res.data.data))
+      .then((r) => setAdmin(r.data.data))
       .catch(console.error);
   }, []);
 
@@ -52,73 +77,140 @@ const AdminBuilding = () => {
     fetchBuildings();
   }, []);
 
-  // ── Building handlers ────────────────────────────────────────────────────
+  const toggleExpand = (id) =>
+    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
 
   const handleAddBuilding = async () => {
-    if (!buildingForm.building_name || !buildingForm.description) {
-      alert("Semua field wajib diisi");
+    if (
+      !buildingForm.building_name.trim() ||
+      !buildingForm.description.trim()
+    ) {
+      alert("Nama dan deskripsi building wajib diisi.");
       return;
     }
     setSaving(true);
     try {
-      await api.post("/buildings", buildingForm);
+      const payload = { ...buildingForm };
+      if (initRooms.length > 0) payload.rooms = initRooms;
+      await createBuilding(payload);
       setBuildingForm(EMPTY_BUILDING_FORM);
+      setInitRooms([]);
+      setInitRoomInput({ name_room: "", description: "" });
       setShowAddBuilding(false);
       fetchBuildings();
-    } catch {
-      alert("Gagal menambah building. Pastikan endpoint /buildings tersedia.");
+    } catch (e) {
+      alert(e?.response?.data?.message ?? "Gagal menambah building.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleEditBuilding = async () => {
+    if (
+      !editBuildingForm.building_name.trim() ||
+      !editBuildingForm.description.trim()
+    ) {
+      alert("Nama dan deskripsi building wajib diisi.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await updateBuilding(editBuilding.id, editBuildingForm);
+      setEditBuilding(null);
+      fetchBuildings();
+    } catch (e) {
+      alert(e?.response?.data?.message ?? "Gagal mengubah building.");
     } finally {
       setSaving(false);
     }
   };
 
   const handleDeleteBuilding = async () => {
-    if (!deleteBuilding) return;
+    if (!deleteTarget) return;
     setSaving(true);
     try {
-      await api.delete(`/buildings/${deleteBuilding.id}`);
-      setDeleteBuilding(null);
+      await deleteBuilding(deleteTarget.id);
+      setDeleteTarget(null);
       fetchBuildings();
-    } catch {
-      alert("Gagal menghapus building.");
+    } catch (e) {
+      alert(e?.response?.data?.message ?? "Gagal menghapus building.");
     } finally {
       setSaving(false);
     }
   };
 
-  // ── Room handlers ────────────────────────────────────────────────────────
-
   const handleAddRoom = async () => {
-    if (!roomForm.name_room || !roomForm.description || !showAddRoom) {
-      alert("Semua field wajib diisi");
+    if (
+      !roomForm.name_room.trim() ||
+      !roomForm.room_description.trim() ||
+      !showAddRoom
+    ) {
+      alert("Semua field wajib diisi.");
       return;
     }
     setSaving(true);
     try {
-      await api.post("/rooms", { ...roomForm, building_id: showAddRoom.id });
+      await createRoom({
+        building_id: showAddRoom.id,
+        name_room: roomForm.name_room,
+        room_description: roomForm.room_description,
+      });
       setRoomForm(EMPTY_ROOM_FORM);
       setShowAddRoom(null);
       fetchBuildings();
-    } catch {
-      alert("Gagal menambah room. Pastikan endpoint /rooms tersedia.");
+    } catch (e) {
+      alert(e?.response?.data?.message ?? "Gagal menambah room.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleEditRoom = async () => {
+    if (
+      !editRoomForm.name_room.trim() ||
+      !editRoomForm.description.trim() ||
+      !editRoom
+    ) {
+      alert("Semua field wajib diisi.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await updateRoom(editRoom.id, {
+        building_id: editRoom.building_id,
+        name_room: editRoomForm.name_room,
+        description: editRoomForm.description,
+      });
+      setEditRoom(null);
+      fetchBuildings();
+    } catch (e) {
+      alert(e?.response?.data?.message ?? "Gagal mengubah room.");
     } finally {
       setSaving(false);
     }
   };
 
   const handleDeleteRoom = async () => {
-    if (!deleteRoom) return;
+    if (!deleteRoomTarget) return;
     setSaving(true);
     try {
-      await api.delete(`/rooms/${deleteRoom.id}`);
-      setDeleteRoom(null);
+      await deleteRoom(deleteRoomTarget.id);
+      setDeleteRoomTarget(null);
       fetchBuildings();
-    } catch {
-      alert("Gagal menghapus room.");
+    } catch (e) {
+      alert(e?.response?.data?.message ?? "Gagal menghapus room.");
     } finally {
       setSaving(false);
     }
   };
+
+  const addInitRoom = () => {
+    if (!initRoomInput.name_room.trim()) return;
+    setInitRooms([...initRooms, { ...initRoomInput }]);
+    setInitRoomInput({ name_room: "", description: "" });
+  };
+  const removeInitRoom = (idx) =>
+    setInitRooms(initRooms.filter((_, i) => i !== idx));
 
   const totalRooms = buildings.reduce(
     (acc, b) => acc + (b.rooms?.length ?? 0),
@@ -141,6 +233,7 @@ const AdminBuilding = () => {
           <button
             onClick={() => {
               setBuildingForm(EMPTY_BUILDING_FORM);
+              setInitRooms([]);
               setShowAddBuilding(true);
             }}
             className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors"
@@ -184,7 +277,6 @@ const AdminBuilding = () => {
           <div className="space-y-4">
             {buildings.map((building) => {
               const isExpanded = expanded[building.id] ?? true;
-
               return (
                 <div
                   key={building.id}
@@ -212,7 +304,6 @@ const AdminBuilding = () => {
                         {isExpanded ? "▲" : "▼"}
                       </span>
                     </button>
-
                     <div className="flex gap-2 ml-4">
                       <button
                         onClick={() => {
@@ -224,7 +315,20 @@ const AdminBuilding = () => {
                         + Room
                       </button>
                       <button
-                        onClick={() => setDeleteBuilding(building)}
+                        onClick={() => {
+                          setEditBuildingForm({
+                            building_name: building.building_name,
+                            description: building.description,
+                          });
+                          setEditBuilding(building);
+                        }}
+                        className="p-1.5 bg-amber-50 text-amber-500 rounded-lg hover:bg-amber-100 transition-colors text-sm"
+                        title="Edit Building"
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        onClick={() => setDeleteTarget(building)}
                         className="p-1.5 bg-red-50 text-red-400 rounded-lg hover:bg-red-100 transition-colors"
                         title="Hapus Building"
                       >
@@ -251,13 +355,31 @@ const AdminBuilding = () => {
                                   {room.description}
                                 </p>
                               </div>
-                              <button
-                                onClick={() => setDeleteRoom(room)}
-                                className="opacity-0 group-hover:opacity-100 w-5 h-5 rounded flex items-center justify-center text-red-400 hover:bg-red-50 transition-all flex-shrink-0 ml-1 text-xs"
-                                title="Hapus Room"
-                              >
-                                ×
-                              </button>
+                              <div className="opacity-0 group-hover:opacity-100 flex gap-1 flex-shrink-0 ml-1 transition-all">
+                                <button
+                                  onClick={() => {
+                                    setEditRoomForm({
+                                      name_room: room.name_room,
+                                      description: room.description,
+                                    });
+                                    setEditRoom({
+                                      ...room,
+                                      building_id: building.id,
+                                    });
+                                  }}
+                                  className="w-5 h-5 rounded flex items-center justify-center text-amber-400 hover:bg-amber-50 text-xs"
+                                  title="Edit Room"
+                                >
+                                  ✏
+                                </button>
+                                <button
+                                  onClick={() => setDeleteRoomTarget(room)}
+                                  className="w-5 h-5 rounded flex items-center justify-center text-red-400 hover:bg-red-50 text-xs"
+                                  title="Hapus Room"
+                                >
+                                  ×
+                                </button>
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -286,39 +408,96 @@ const AdminBuilding = () => {
         )}
       </div>
 
-      {/* ── Modal Tambah Building ── */}
       {showAddBuilding && (
         <AdminModal
           title="Tambah Building Baru"
           onClose={() => setShowAddBuilding(false)}
         >
           <div className="space-y-4">
-            {[
-              {
-                key: "building_name",
-                label: "Nama Building",
-                placeholder: "Contoh: Gedung Utara",
-              },
-              {
-                key: "description",
-                label: "Deskripsi",
-                placeholder: "Contoh: Gedung di sisi utara kampus",
-              },
-            ].map(({ key, label, placeholder }) => (
-              <div key={key}>
-                <label className="text-gray-500 text-xs font-medium mb-1 block">
-                  {label}
-                </label>
+            <Field
+              label="Nama Building"
+              value={buildingForm.building_name}
+              onChange={(e) =>
+                setBuildingForm({
+                  ...buildingForm,
+                  building_name: e.target.value,
+                })
+              }
+              placeholder="Contoh: Gedung Utara"
+            />
+            <Field
+              label="Deskripsi"
+              value={buildingForm.description}
+              onChange={(e) =>
+                setBuildingForm({
+                  ...buildingForm,
+                  description: e.target.value,
+                })
+              }
+              placeholder="Contoh: Gedung di sisi utara kampus"
+            />
+
+            {/* Room opsional */}
+            <div className="border-t border-gray-100 pt-3">
+              <p className="text-xs font-semibold text-gray-500 mb-2">
+                Room Awal{" "}
+                <span className="text-gray-300 font-normal">(opsional)</span>
+              </p>
+              <div className="flex gap-2 mb-2">
                 <input
-                  value={buildingForm[key]}
+                  value={initRoomInput.name_room}
                   onChange={(e) =>
-                    setBuildingForm({ ...buildingForm, [key]: e.target.value })
+                    setInitRoomInput({
+                      ...initRoomInput,
+                      name_room: e.target.value,
+                    })
                   }
-                  placeholder={placeholder}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-400 bg-gray-50"
+                  placeholder="Nama room (mis. R1001)"
+                  className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-indigo-400 bg-gray-50"
                 />
+                <input
+                  value={initRoomInput.description}
+                  onChange={(e) =>
+                    setInitRoomInput({
+                      ...initRoomInput,
+                      description: e.target.value,
+                    })
+                  }
+                  placeholder="Deskripsi"
+                  className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-indigo-400 bg-gray-50"
+                />
+                <button
+                  onClick={addInitRoom}
+                  className="px-3 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-sm font-semibold hover:bg-indigo-100 whitespace-nowrap"
+                >
+                  + Tambah
+                </button>
               </div>
-            ))}
+              {initRooms.length > 0 && (
+                <div className="space-y-1">
+                  {initRooms.map((r, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-1.5"
+                    >
+                      <span className="text-sm text-gray-700">
+                        {r.name_room} —{" "}
+                        <span className="text-gray-400 text-xs">
+                          {r.description}
+                        </span>
+                      </span>
+                      <button
+                        onClick={() => removeInitRoom(i)}
+                        className="text-red-400 text-xs hover:text-red-600"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div className="flex gap-3 pt-2">
               <button
                 onClick={() => setShowAddBuilding(false)}
@@ -338,39 +517,110 @@ const AdminBuilding = () => {
         </AdminModal>
       )}
 
-      {/* ── Modal Tambah Room ── */}
+      {editBuilding && (
+        <AdminModal
+          title={`Edit — ${editBuilding.building_name}`}
+          onClose={() => setEditBuilding(null)}
+        >
+          <div className="space-y-4">
+            <Field
+              label="Nama Building"
+              value={editBuildingForm.building_name}
+              onChange={(e) =>
+                setEditBuildingForm({
+                  ...editBuildingForm,
+                  building_name: e.target.value,
+                })
+              }
+              placeholder="Nama building"
+            />
+            <Field
+              label="Deskripsi"
+              value={editBuildingForm.description}
+              onChange={(e) =>
+                setEditBuildingForm({
+                  ...editBuildingForm,
+                  description: e.target.value,
+                })
+              }
+              placeholder="Deskripsi building"
+            />
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => setEditBuilding(null)}
+                className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleEditBuilding}
+                disabled={saving}
+                className="flex-1 py-2.5 bg-amber-500 text-white rounded-xl text-sm font-semibold disabled:opacity-50"
+              >
+                {saving ? "Menyimpan..." : "Simpan Perubahan"}
+              </button>
+            </div>
+          </div>
+        </AdminModal>
+      )}
+
+      {deleteTarget && (
+        <AdminModal
+          title="Hapus Building?"
+          onClose={() => setDeleteTarget(null)}
+        >
+          <div className="bg-red-50 border border-red-100 rounded-xl p-4 mb-5">
+            <p className="text-red-600 text-sm font-medium">⚠️ Peringatan!</p>
+            <p className="text-red-500 text-xs mt-1">
+              Building{" "}
+              <span className="font-bold">"{deleteTarget.building_name}"</span>{" "}
+              beserta{" "}
+              <span className="font-bold">
+                {deleteTarget.rooms?.length ?? 0} room
+              </span>{" "}
+              di dalamnya akan dihapus permanen.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setDeleteTarget(null)}
+              className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium"
+            >
+              Batal
+            </button>
+            <button
+              onClick={handleDeleteBuilding}
+              disabled={saving}
+              className="flex-1 py-2.5 bg-red-500 text-white rounded-xl text-sm font-semibold disabled:opacity-50"
+            >
+              {saving ? "Menghapus..." : "Hapus"}
+            </button>
+          </div>
+        </AdminModal>
+      )}
+
       {showAddRoom && (
         <AdminModal
           title={`Tambah Room — ${showAddRoom.building_name}`}
           onClose={() => setShowAddRoom(null)}
         >
           <div className="space-y-4">
-            {[
-              {
-                key: "name_room",
-                label: "Nomor / Nama Room",
-                placeholder: "Contoh: 5001",
-              },
-              {
-                key: "description",
-                label: "Deskripsi",
-                placeholder: "Contoh: Ruang kelas lantai 5",
-              },
-            ].map(({ key, label, placeholder }) => (
-              <div key={key}>
-                <label className="text-gray-500 text-xs font-medium mb-1 block">
-                  {label}
-                </label>
-                <input
-                  value={roomForm[key]}
-                  onChange={(e) =>
-                    setRoomForm({ ...roomForm, [key]: e.target.value })
-                  }
-                  placeholder={placeholder}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-400 bg-gray-50"
-                />
-              </div>
-            ))}
+            <Field
+              label="Nomor / Nama Room"
+              value={roomForm.name_room}
+              onChange={(e) =>
+                setRoomForm({ ...roomForm, name_room: e.target.value })
+              }
+              placeholder="Contoh: 5001"
+            />
+            <Field
+              label="Deskripsi"
+              value={roomForm.room_description}
+              onChange={(e) =>
+                setRoomForm({ ...roomForm, room_description: e.target.value })
+              }
+              placeholder="Contoh: Ruang kelas lantai 5"
+            />
             <div className="flex gap-3 pt-2">
               <button
                 onClick={() => setShowAddRoom(null)}
@@ -390,58 +640,69 @@ const AdminBuilding = () => {
         </AdminModal>
       )}
 
-      {/* ── Modal Hapus Building ── */}
-      {deleteBuilding && (
+      {editRoom && (
         <AdminModal
-          title="Hapus Building?"
-          onClose={() => setDeleteBuilding(null)}
+          title={`Edit Room — R${editRoom.name_room}`}
+          onClose={() => setEditRoom(null)}
         >
-          <div className="bg-red-50 border border-red-100 rounded-xl p-4 mb-5">
-            <p className="text-red-600 text-sm font-medium">⚠️ Peringatan!</p>
-            <p className="text-red-500 text-xs mt-1">
-              Building{" "}
-              <span className="font-bold">
-                "{deleteBuilding.building_name}"
-              </span>{" "}
-              beserta{" "}
-              <span className="font-bold">
-                {deleteBuilding.rooms?.length ?? 0} room
-              </span>{" "}
-              di dalamnya akan dihapus permanen.
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <button
-              onClick={() => setDeleteBuilding(null)}
-              className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium"
-            >
-              Batal
-            </button>
-            <button
-              onClick={handleDeleteBuilding}
-              disabled={saving}
-              className="flex-1 py-2.5 bg-red-500 text-white rounded-xl text-sm font-semibold disabled:opacity-50"
-            >
-              {saving ? "Menghapus..." : "Hapus"}
-            </button>
+          <div className="space-y-4">
+            <Field
+              label="Nomor / Nama Room"
+              value={editRoomForm.name_room}
+              onChange={(e) =>
+                setEditRoomForm({ ...editRoomForm, name_room: e.target.value })
+              }
+              placeholder="Nomor room"
+            />
+            <Field
+              label="Deskripsi"
+              value={editRoomForm.description}
+              onChange={(e) =>
+                setEditRoomForm({
+                  ...editRoomForm,
+                  description: e.target.value,
+                })
+              }
+              placeholder="Deskripsi room"
+            />
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => setEditRoom(null)}
+                className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleEditRoom}
+                disabled={saving}
+                className="flex-1 py-2.5 bg-amber-500 text-white rounded-xl text-sm font-semibold disabled:opacity-50"
+              >
+                {saving ? "Menyimpan..." : "Simpan Perubahan"}
+              </button>
+            </div>
           </div>
         </AdminModal>
       )}
 
-      {/* ── Modal Hapus Room ── */}
-      {deleteRoom && (
-        <AdminModal title="Hapus Room?" onClose={() => setDeleteRoom(null)}>
+      {deleteRoomTarget && (
+        <AdminModal
+          title="Hapus Room?"
+          onClose={() => setDeleteRoomTarget(null)}
+        >
           <p className="text-gray-500 text-sm mb-6">
             Room{" "}
             <span className="font-semibold text-gray-800">
-              R{deleteRoom.name_room}
+              R{deleteRoomTarget.name_room}
             </span>{" "}
-            — <span className="text-gray-400">{deleteRoom.description}</span>{" "}
+            —{" "}
+            <span className="text-gray-400">
+              {deleteRoomTarget.description}
+            </span>{" "}
             akan dihapus permanen.
           </p>
           <div className="flex gap-3">
             <button
-              onClick={() => setDeleteRoom(null)}
+              onClick={() => setDeleteRoomTarget(null)}
               className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium"
             >
               Batal

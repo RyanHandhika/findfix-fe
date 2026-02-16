@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import AdminLayout from "../../components/admin/AdminLayout";
 import AdminModal from "../../components/admin/AdminModal";
 import { getAllReport } from "../../services/report";
-import { getMe } from "../../services/auth";
+import { getMe, register, getAllUsers } from "../../services/auth";
 import { getBadge, countFoundReports } from "../../services/badges";
 
 const AdminUsers = () => {
@@ -12,53 +12,80 @@ const AdminUsers = () => {
   const [search, setSearch] = useState("");
   const [detailUser, setDetailUser] = useState(null);
 
+  // Add User Modal state
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addForm, setAddForm] = useState({ name: "", email: "", password: "" });
+  const [showPassword, setShowPassword] = useState(false);
+  const [addLoading, setAddLoading] = useState(false);
+  const [addError, setAddError] = useState("");
+  const [addSuccess, setAddSuccess] = useState(false);
+
+  const fetchUsers = async () => {
+    try {
+      const [reportsRes, allUsersRes] = await Promise.all([
+        getAllReport(),
+        getAllUsers(),
+      ]);
+
+      const founds = reportsRes.data.data.founds ?? [];
+      const allUsers = (allUsersRes.data.data ?? allUsersRes.data ?? []).filter(
+        (u) => u.user_role_id === 2,
+      );
+
+      const reportMap = {};
+      founds.forEach((f) => {
+        if (!f.user) return;
+        if (!reportMap[f.user.id]) {
+          reportMap[f.user.id] = {
+            totalReports: 0,
+            lostReports: 0,
+            returnedReports: 0,
+            reports: [],
+          };
+        }
+        reportMap[f.user.id].totalReports += 1;
+        reportMap[f.user.id].reports.push(f);
+        if (f.found_status_id === 1 || f.found_status_id === 2) {
+          reportMap[f.user.id].lostReports += 1;
+        }
+        if (f.found_status_id === 3) {
+          reportMap[f.user.id].returnedReports += 1;
+        }
+      });
+
+      const userList = allUsers.map((u) => {
+        const stats = reportMap[u.id] ?? {
+          totalReports: 0,
+          lostReports: 0,
+          returnedReports: 0,
+          reports: [],
+        };
+        return {
+          ...u,
+          ...stats,
+          foundReports: countFoundReports(stats.reports, u.id),
+        };
+      });
+
+      setUsers(userList);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
+    const init = async () => {
       try {
-        const [userRes, reportsRes] = await Promise.all([
-          getMe(),
-          getAllReport(),
-        ]);
+        const userRes = await getMe();
         setAdmin(userRes.data.data);
-
-        const founds = reportsRes.data.data.founds ?? [];
-        const map = {};
-
-        founds.forEach((f) => {
-          if (!f.user) return;
-          if (!map[f.user.id]) {
-            map[f.user.id] = {
-              ...f.user,
-              totalReports: 0,
-              lostReports: 0,
-              returnedReports: 0,
-              reports: [],
-            };
-          }
-          map[f.user.id].totalReports += 1;
-          map[f.user.id].reports.push(f);
-
-          if (f.found_status_id === 1 || f.found_status_id === 2) {
-            map[f.user.id].lostReports += 1;
-          }
-          if (f.found_status_id === 3) {
-            map[f.user.id].returnedReports += 1;
-          }
-        });
-
-        const userList = Object.values(map).map((user) => ({
-          ...user,
-          foundReports: countFoundReports(user.reports, user.id),
-        }));
-
-        setUsers(userList);
+        await fetchUsers();
       } catch (e) {
         console.error(e);
       } finally {
         setLoading(false);
       }
     };
-    fetchData();
+    init();
   }, []);
 
   const filtered = users.filter(
@@ -67,17 +94,90 @@ const AdminUsers = () => {
       u.email?.toLowerCase().includes(search.toLowerCase()),
   );
 
+  const handleAddFormChange = (e) => {
+    setAddForm({ ...addForm, [e.target.name]: e.target.value });
+    setAddError("");
+  };
+
+  const handleAddUser = async (e) => {
+    e.preventDefault();
+    setAddError("");
+
+    if (!addForm.name.trim()) {
+      setAddError("Nama lengkap tidak boleh kosong.");
+      return;
+    }
+    if (
+      !addForm.email.trim() ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(addForm.email)
+    ) {
+      setAddError("Masukkan alamat email yang valid.");
+      return;
+    }
+    if (!addForm.password.trim() || addForm.password.length < 8) {
+      setAddError("Password minimal 8 karakter.");
+      return;
+    }
+
+    setAddLoading(true);
+    try {
+      await register({ ...addForm, user_role_id: 2 });
+      setAddSuccess(true);
+      setAddForm({ name: "", email: "", password: "" });
+      await fetchUsers();
+      setTimeout(() => {
+        setShowAddModal(false);
+        setAddSuccess(false);
+      }, 1500);
+    } catch (err) {
+      setAddError(
+        err?.response?.data?.message ?? "Gagal menambahkan user. Coba lagi.",
+      );
+    } finally {
+      setAddLoading(false);
+    }
+  };
+
+  const handleCloseAddModal = () => {
+    setShowAddModal(false);
+    setAddForm({ name: "", email: "", password: "" });
+    setAddError("");
+    setAddSuccess(false);
+    setShowPassword(false);
+  };
+
   return (
     <AdminLayout admin={admin} pageTitle="Manajemen User">
       <div className="space-y-6">
         {/* Header */}
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-1">
-            Manajemen User
-          </h2>
-          <p className="text-gray-500 text-sm">
-            {filtered.length} user ditemukan
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-1">
+              Manajemen User
+            </h2>
+            <p className="text-gray-500 text-sm">
+              {filtered.length} user ditemukan
+            </p>
+          </div>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors shadow-sm"
+          >
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+            Tambah User
+          </button>
         </div>
 
         {/* Search */}
@@ -137,7 +237,6 @@ const AdminUsers = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {filtered.map((user) => {
               const badge = getBadge(user.foundReports);
-              const isAdmin = user.user_role_id === 1;
 
               return (
                 <div
@@ -154,11 +253,6 @@ const AdminUsers = () => {
                         <p className="font-semibold text-gray-800 truncate">
                           {user.name}
                         </p>
-                        <span
-                          className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${isAdmin ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"}`}
-                        >
-                          {isAdmin ? "Admin" : "User"}
-                        </span>
                       </div>
                       <p className="text-gray-400 text-xs truncate">
                         {user.email}
@@ -206,6 +300,228 @@ const AdminUsers = () => {
           </div>
         )}
       </div>
+
+      {/* Modal Tambah User */}
+      {showAddModal && (
+        <AdminModal title="Tambah User Baru" onClose={handleCloseAddModal}>
+          {addSuccess ? (
+            <div className="flex flex-col items-center justify-center py-8 gap-3">
+              <div className="w-14 h-14 bg-emerald-100 rounded-full flex items-center justify-center">
+                <svg
+                  className="w-7 h-7 text-emerald-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              </div>
+              <p className="font-semibold text-gray-800">
+                User berhasil ditambahkan!
+              </p>
+            </div>
+          ) : (
+            <form onSubmit={handleAddUser} className="space-y-4">
+              {/* Nama */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                  Nama Lengkap
+                </label>
+                <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 gap-3 focus-within:border-indigo-400 transition-colors">
+                  <svg
+                    className="w-4 h-4 text-gray-400 flex-shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                    />
+                  </svg>
+                  <input
+                    type="text"
+                    name="name"
+                    value={addForm.name}
+                    onChange={handleAddFormChange}
+                    placeholder="Masukkan nama lengkap"
+                    className="flex-1 py-3 bg-transparent text-sm text-gray-800 placeholder-gray-400 outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Email */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                  Email
+                </label>
+                <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 gap-3 focus-within:border-indigo-400 transition-colors">
+                  <svg
+                    className="w-4 h-4 text-gray-400 flex-shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                    />
+                  </svg>
+                  <input
+                    type="email"
+                    name="email"
+                    value={addForm.email}
+                    onChange={handleAddFormChange}
+                    placeholder="contoh@email.com"
+                    className="flex-1 py-3 bg-transparent text-sm text-gray-800 placeholder-gray-400 outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Password */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                  Password
+                </label>
+                <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 gap-3 focus-within:border-indigo-400 transition-colors">
+                  <svg
+                    className="w-4 h-4 text-gray-400 flex-shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                    />
+                  </svg>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    value={addForm.password}
+                    onChange={handleAddFormChange}
+                    placeholder="Minimal 8 karakter"
+                    className="flex-1 py-3 bg-transparent text-sm text-gray-800 placeholder-gray-400 outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((p) => !p)}
+                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    {showPassword ? (
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+                        />
+                      </svg>
+                    ) : (
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                        />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Error */}
+              {addError && (
+                <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
+                  <svg
+                    className="w-4 h-4 text-red-500 flex-shrink-0"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  <p className="text-sm text-red-600">{addError}</p>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={handleCloseAddModal}
+                  className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-500 text-sm font-medium hover:bg-gray-50 transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={addLoading}
+                  className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors"
+                >
+                  {addLoading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg
+                        className="animate-spin w-4 h-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                        />
+                      </svg>
+                      Menyimpan...
+                    </span>
+                  ) : (
+                    "Tambah User"
+                  )}
+                </button>
+              </div>
+            </form>
+          )}
+        </AdminModal>
+      )}
 
       {/* Modal Detail User */}
       {detailUser && (

@@ -7,8 +7,8 @@ import {
   getAllReport,
   getFoundCategories,
   getFoundStatuses,
-  getBuildings,
 } from "../services/report";
+import { getBuildings } from "../services/building";
 import { useLocation, useSearchParams } from "react-router-dom";
 
 const getLastDateFromTimeOption = (option) => {

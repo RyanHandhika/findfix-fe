@@ -5,8 +5,8 @@ import {
   addNewReport,
   getFoundCategories,
   getFoundStatuses,
-  getBuildings,
 } from "../services/report";
+import { getBuildings } from "../services/building";
 
 const TambahLaporan = () => {
   const navigate = useNavigate();

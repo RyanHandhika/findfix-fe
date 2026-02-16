@@ -8,6 +8,20 @@ const login = async (data) => {
   return response;
 };
 
+const register = async (data) => {
+  const formData = new FormData();
+  formData.append("name", data.name);
+  formData.append("email", data.email);
+  formData.append("user_role_id", data.user_role_id);
+  formData.append("password", data.password);
+
+  const response = await api.post("/users/add", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+
+  return response;
+};
+
 const getMe = () => api.get("/auth/get");
 
 const logout = () => {
@@ -21,7 +35,20 @@ const getUserRole = () => {
   return JSON.parse(user)?.user_role_id ?? null;
 };
 
+const getAllUsers = () => {
+  return api.get("/users/get");
+};
+
 const isAdmin = () => getUserRole() === 1;
 const isUser = () => getUserRole() === 2;
 
-export { login, getMe, logout, getUserRole, isAdmin, isUser };
+export {
+  login,
+  register,
+  getMe,
+  logout,
+  getUserRole,
+  isAdmin,
+  isUser,
+  getAllUsers,
+};

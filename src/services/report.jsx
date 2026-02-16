@@ -8,10 +8,6 @@ const getFoundStatuses = () => {
   return api.get("/founds/get-found-status");
 };
 
-const getBuildings = () => {
-  return api.get("/buildings/rooms");
-};
-
 const getReportStats = () => {
   return api.get("/founds/get-count-report");
 };
@@ -58,6 +54,5 @@ export {
   addNewReport,
   getFoundCategories,
   getFoundStatuses,
-  getBuildings,
   getReportById,
 };
