@@ -90,9 +90,7 @@ const AdminBuilding = () => {
     }
     setSaving(true);
     try {
-      const payload = { ...buildingForm };
-      if (initRooms.length > 0) payload.rooms = initRooms;
-      await createBuilding(payload);
+      await createBuilding({ ...buildingForm, rooms: initRooms });
       setBuildingForm(EMPTY_BUILDING_FORM);
       setInitRooms([]);
       setInitRoomInput({ name_room: "", description: "" });
@@ -466,13 +464,13 @@ const AdminBuilding = () => {
                   placeholder="Deskripsi"
                   className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-indigo-400 bg-gray-50"
                 />
-                <button
-                  onClick={addInitRoom}
-                  className="px-3 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-sm font-semibold hover:bg-indigo-100 whitespace-nowrap"
-                >
-                  + Tambah
-                </button>
               </div>
+              <button
+                onClick={addInitRoom}
+                className="px-3 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-sm font-semibold hover:bg-indigo-100 whitespace-nowrap"
+              >
+                + Tambah
+              </button>
               {initRooms.length > 0 && (
                 <div className="space-y-1">
                   {initRooms.map((r, i) => (

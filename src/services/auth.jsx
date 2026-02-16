@@ -22,7 +22,17 @@ const register = async (data) => {
   return response;
 };
 
-const getMe = () => api.get("/auth/get");
+const getMe = () => {
+  return api.get("/auth/get");
+};
+
+const updateUser = (id, data) => {
+  return api.post(`/users/update/${id}`, data);
+};
+
+const deleteUser = (id) => {
+  return api.delete(`/users/${id}`);
+};
 
 const logout = () => {
   localStorage.removeItem("token");
@@ -46,6 +56,8 @@ export {
   login,
   register,
   getMe,
+  updateUser,
+  deleteUser,
   logout,
   getUserRole,
   isAdmin,

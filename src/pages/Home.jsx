@@ -26,7 +26,6 @@ const Home = () => {
         console.error("Failed to fetch stats", error);
       }
     };
-
     fetchStats();
   }, []);
 
@@ -34,15 +33,14 @@ const Home = () => {
     const fetchNewestReport = async () => {
       try {
         const res = await getNewestReport();
-        setNewestFound(res.data.data.Ditemukan);
-        setNewestLost(res.data.data.Hilang);
+        setNewestFound(res.data.data.Ditemukan ?? null);
+        setNewestLost(res.data.data.Hilang ?? null);
       } catch (error) {
         console.error("Failed to fetch newest report", error);
       } finally {
         setLoading(false);
       }
     };
-
     fetchNewestReport();
   }, []);
 
@@ -66,26 +64,11 @@ const Home = () => {
     const months = Math.floor(diffInSeconds / 2592000);
     const years = Math.floor(diffInSeconds / 31536000);
 
-    if (minutes < 60) {
-      return `${minutes} Menit lalu`;
-    }
-
-    if (hours < 24) {
-      return `${hours} Jam lalu`;
-    }
-
-    if (days < 7) {
-      return `${days} Hari lalu`;
-    }
-
-    if (weeks < 4) {
-      return `${weeks} Minggu lalu`;
-    }
-
-    if (months < 12) {
-      return `${months} Bulan lalu`;
-    }
-
+    if (minutes < 60) return `${minutes} Menit lalu`;
+    if (hours < 24) return `${hours} Jam lalu`;
+    if (days < 7) return `${days} Hari lalu`;
+    if (weeks < 4) return `${weeks} Minggu lalu`;
+    if (months < 12) return `${months} Bulan lalu`;
     return `${years} Tahun lalu`;
   };
 
@@ -110,12 +93,19 @@ const Home = () => {
     },
   ];
 
+  const EmptyReport = ({ message }) => (
+    <div className="bg-white rounded-2xl p-5 text-center border border-dashed border-gray-200">
+      <p className="text-2xl mb-1">📭</p>
+      <p className="text-gray-400 text-sm">{message}</p>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#4A3AFF] pb-20">
       <Header />
 
       <div className="bg-gray-50 rounded-t-[30px] mt-5 p-5 min-h-screen">
-        {/* menu */}
+        {/* Menu */}
         <div className="mb-6">
           <h2 className="text-xl font-semibold text-gray-800 mb-4">Menu</h2>
           <div className="flex gap-4">
@@ -138,7 +128,7 @@ const Home = () => {
           </div>
         </div>
 
-        {/* statistik */}
+        {/* Statistik */}
         <div className="bg-white rounded-2xl p-5 shadow-md mb-6">
           <h3 className="text-base font-semibold text-gray-800 mb-4">
             Jumlah Laporan
@@ -158,6 +148,7 @@ const Home = () => {
           </div>
         </div>
 
+        {/* Laporan Kehilangan Terbaru */}
         <div className="mb-6">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-base font-semibold text-gray-800">
@@ -187,12 +178,11 @@ const Home = () => {
               borderColor="#EF4444"
             />
           ) : (
-            <p className="text-center text-gray-400 py-4">
-              Belum ada laporan kehilangan
-            </p>
+            <EmptyReport message="Tidak ada laporan kehilangan saat ini" />
           )}
         </div>
 
+        {/* Barang Ditemukan Terbaru */}
         <div className="mb-6">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-base font-semibold text-gray-800">
@@ -215,16 +205,14 @@ const Home = () => {
               role={getRoleName(newestFound.user?.user_role_id)}
               time={timeAgo(newestFound.created_at)}
               itemName={newestFound.found_name}
-              location={`R${newestLost.room?.name_room ?? "-"}`}
+              location={`R${newestFound.room?.name_room ?? "-"}`}
               description={newestFound.found_description}
               status="DITEMUKAN"
               statusColor="green"
               borderColor="#22C55E"
             />
           ) : (
-            <p className="text-center text-gray-400 py-4">
-              Belum ada barang ditemukan
-            </p>
+            <EmptyReport message="Tidak ada barang ditemukan saat ini" />
           )}
         </div>
       </div>

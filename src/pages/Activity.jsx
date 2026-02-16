@@ -122,7 +122,7 @@ const Activity = () => {
 
         const allFounds = reportsRes.data.data.founds ?? [];
         const myReports = allFounds.filter(
-          (f) => f.user_id === currentUser.data.id,
+          (f) => f.user_id === currentUser.data.data.id,
         );
         setAllReports(myReports);
       } catch (error) {
@@ -137,17 +137,14 @@ const Activity = () => {
 
   const filteredReports = allReports.filter((f) => {
     if (activeTab === "all") return true;
-    if (activeTab === "found")
-      return (
-        f.status?.name === "Ditemukan" || f.status?.name === "Dikembalikan"
-      );
+    if (activeTab === "found") return f.status?.name === "Ditemukan";
     if (activeTab === "lost") return f.status?.name === "Hilang";
     return true;
   });
 
   const countAll = allReports.length;
   const countFound = allReports.filter(
-    (f) => f.status?.name === "Ditemukan" || f.status?.name === "Dikembalikan",
+    (f) => f.status?.name === "Ditemukan",
   ).length;
   const countLost = allReports.filter(
     (f) => f.status?.name === "Hilang",

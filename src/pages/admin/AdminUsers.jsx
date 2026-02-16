@@ -2,23 +2,47 @@ import { useEffect, useState } from "react";
 import AdminLayout from "../../components/admin/AdminLayout";
 import AdminModal from "../../components/admin/AdminModal";
 import { getAllReport } from "../../services/report";
-import { getMe, register, getAllUsers } from "../../services/auth";
+import {
+  getMe,
+  register,
+  getAllUsers,
+  updateUser,
+  deleteUser,
+} from "../../services/auth";
 import { getBadge, countFoundReports } from "../../services/badges";
+
+const STATUS_COLOR = {
+  Ditemukan: "bg-emerald-100 text-emerald-700",
+  Hilang: "bg-red-100 text-red-600",
+  Dikembalikan: "bg-sky-100 text-sky-700",
+  Tersimpan: "bg-amber-100 text-amber-700",
+};
 
 const AdminUsers = () => {
   const [admin, setAdmin] = useState(null);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+
   const [detailUser, setDetailUser] = useState(null);
 
-  // Add User Modal state
+  // Add
   const [showAddModal, setShowAddModal] = useState(false);
   const [addForm, setAddForm] = useState({ name: "", email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState("");
   const [addSuccess, setAddSuccess] = useState(false);
+
+  // Edit
+  const [editUser, setEditUser] = useState(null);
+  const [editForm, setEditForm] = useState({ name: "", email: "" });
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState("");
+
+  // Delete
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const fetchUsers = async () => {
     try {
@@ -45,12 +69,9 @@ const AdminUsers = () => {
         }
         reportMap[f.user.id].totalReports += 1;
         reportMap[f.user.id].reports.push(f);
-        if (f.found_status_id === 1 || f.found_status_id === 2) {
+        if (f.found_status_id === 1 || f.found_status_id === 2)
           reportMap[f.user.id].lostReports += 1;
-        }
-        if (f.found_status_id === 3) {
-          reportMap[f.user.id].returnedReports += 1;
-        }
+        if (f.found_status_id === 3) reportMap[f.user.id].returnedReports += 1;
       });
 
       const userList = allUsers.map((u) => {
@@ -102,7 +123,6 @@ const AdminUsers = () => {
   const handleAddUser = async (e) => {
     e.preventDefault();
     setAddError("");
-
     if (!addForm.name.trim()) {
       setAddError("Nama lengkap tidak boleh kosong.");
       return;
@@ -118,7 +138,6 @@ const AdminUsers = () => {
       setAddError("Password minimal 8 karakter.");
       return;
     }
-
     setAddLoading(true);
     try {
       await register({ ...addForm, user_role_id: 2 });
@@ -130,9 +149,7 @@ const AdminUsers = () => {
         setAddSuccess(false);
       }, 1500);
     } catch (err) {
-      setAddError(
-        err?.response?.data?.message ?? "Gagal menambahkan user. Coba lagi.",
-      );
+      setAddError(err?.response?.data?.message ?? "Gagal menambahkan user.");
     } finally {
       setAddLoading(false);
     }
@@ -144,6 +161,55 @@ const AdminUsers = () => {
     setAddError("");
     setAddSuccess(false);
     setShowPassword(false);
+  };
+
+  const openEdit = (user) => {
+    setEditUser(user);
+    setEditForm({ name: user.name, email: user.email });
+    setEditError("");
+  };
+
+  const handleEditUser = async (e) => {
+    e.preventDefault();
+    setEditError("");
+    if (!editForm.name.trim()) {
+      setEditError("Nama tidak boleh kosong.");
+      return;
+    }
+    if (
+      !editForm.email.trim() ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editForm.email)
+    ) {
+      setEditError("Email tidak valid.");
+      return;
+    }
+    setEditLoading(true);
+    try {
+      await updateUser(editUser.id, {
+        name: editForm.name,
+        email: editForm.email,
+      });
+      setEditUser(null);
+      await fetchUsers();
+    } catch (err) {
+      setEditError(err?.response?.data?.message ?? "Gagal mengubah data user.");
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
+    try {
+      await deleteUser(deleteTarget.id);
+      setDeleteTarget(null);
+      await fetchUsers();
+    } catch (err) {
+      alert(err?.response?.data?.message ?? "Gagal menghapus user.");
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
   return (
@@ -237,23 +303,19 @@ const AdminUsers = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {filtered.map((user) => {
               const badge = getBadge(user.foundReports);
-
               return (
                 <div
                   key={user.id}
                   className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow"
                 >
-                  {/* User Info */}
-                  <div className="flex items-center gap-3 mb-4">
+                  <div className="flex items-start gap-3 mb-4">
                     <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-lg flex-shrink-0">
                       {user.name?.charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-semibold text-gray-800 truncate">
-                          {user.name}
-                        </p>
-                      </div>
+                      <p className="font-semibold text-gray-800 truncate">
+                        {user.name}
+                      </p>
                       <p className="text-gray-400 text-xs truncate">
                         {user.email}
                       </p>
@@ -262,6 +324,22 @@ const AdminUsers = () => {
                           {badge.icon} {badge.name}
                         </p>
                       )}
+                    </div>
+                    <div className="flex gap-1 flex-shrink-0">
+                      <button
+                        onClick={() => openEdit(user)}
+                        title="Edit"
+                        className="p-1.5 rounded-lg bg-amber-50 text-amber-500 hover:bg-amber-100 transition-colors text-sm"
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        onClick={() => setDeleteTarget(user)}
+                        title="Hapus"
+                        className="p-1.5 rounded-lg bg-red-50 text-red-400 hover:bg-red-100 transition-colors text-sm"
+                      >
+                        🗑️
+                      </button>
                     </div>
                   </div>
 
@@ -287,7 +365,6 @@ const AdminUsers = () => {
                     </div>
                   </div>
 
-                  {/* Detail button */}
                   <button
                     onClick={() => setDetailUser(user)}
                     className="mt-3 w-full py-2 rounded-xl bg-gray-50 text-gray-500 text-xs font-medium hover:bg-indigo-50 hover:text-indigo-600 transition-colors border border-gray-100"
@@ -301,7 +378,6 @@ const AdminUsers = () => {
         )}
       </div>
 
-      {/* Modal Tambah User */}
       {showAddModal && (
         <AdminModal title="Tambah User Baru" onClose={handleCloseAddModal}>
           {addSuccess ? (
@@ -356,7 +432,6 @@ const AdminUsers = () => {
                   />
                 </div>
               </div>
-
               {/* Email */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">
@@ -386,7 +461,6 @@ const AdminUsers = () => {
                   />
                 </div>
               </div>
-
               {/* Password */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">
@@ -457,8 +531,6 @@ const AdminUsers = () => {
                   </button>
                 </div>
               </div>
-
-              {/* Error */}
               {addError && (
                 <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
                   <svg
@@ -475,8 +547,6 @@ const AdminUsers = () => {
                   <p className="text-sm text-red-600">{addError}</p>
                 </div>
               )}
-
-              {/* Actions */}
               <div className="flex gap-3 pt-1">
                 <button
                   type="button"
@@ -523,7 +593,144 @@ const AdminUsers = () => {
         </AdminModal>
       )}
 
-      {/* Modal Detail User */}
+      {editUser && (
+        <AdminModal
+          title={`Edit User — ${editUser.name}`}
+          onClose={() => setEditUser(null)}
+        >
+          <form onSubmit={handleEditUser} className="space-y-4">
+            {/* Nama */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                Nama Lengkap
+              </label>
+              <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 gap-3 focus-within:border-indigo-400 transition-colors">
+                <svg
+                  className="w-4 h-4 text-gray-400 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+                <input
+                  type="text"
+                  value={editForm.name}
+                  onChange={(e) => {
+                    setEditForm({ ...editForm, name: e.target.value });
+                    setEditError("");
+                  }}
+                  placeholder="Nama lengkap"
+                  className="flex-1 py-3 bg-transparent text-sm text-gray-800 placeholder-gray-400 outline-none"
+                />
+              </div>
+            </div>
+            {/* Email */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                Email
+              </label>
+              <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 gap-3 focus-within:border-indigo-400 transition-colors">
+                <svg
+                  className="w-4 h-4 text-gray-400 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                  />
+                </svg>
+                <input
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) => {
+                    setEditForm({ ...editForm, email: e.target.value });
+                    setEditError("");
+                  }}
+                  placeholder="Email"
+                  className="flex-1 py-3 bg-transparent text-sm text-gray-800 placeholder-gray-400 outline-none"
+                />
+              </div>
+            </div>
+            {editError && (
+              <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
+                <svg
+                  className="w-4 h-4 text-red-500 flex-shrink-0"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <p className="text-sm text-red-600">{editError}</p>
+              </div>
+            )}
+            <div className="flex gap-3 pt-1">
+              <button
+                type="button"
+                onClick={() => setEditUser(null)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-500 text-sm font-medium hover:bg-gray-50 transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                disabled={editLoading}
+                className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:opacity-60 text-white text-sm font-semibold transition-colors"
+              >
+                {editLoading ? "Menyimpan..." : "Simpan Perubahan"}
+              </button>
+            </div>
+          </form>
+        </AdminModal>
+      )}
+
+      {deleteTarget && (
+        <AdminModal title="Hapus User?" onClose={() => setDeleteTarget(null)}>
+          <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-4 mb-5">
+            <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-lg flex-shrink-0">
+              {deleteTarget.name?.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <p className="font-semibold text-gray-800">{deleteTarget.name}</p>
+              <p className="text-gray-400 text-xs">{deleteTarget.email}</p>
+            </div>
+          </div>
+          <div className="bg-red-50 border border-red-100 rounded-xl p-3 mb-5">
+            <p className="text-red-600 text-sm">
+              ⚠️ User ini akan dihapus permanen beserta seluruh datanya.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setDeleteTarget(null)}
+              className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-500 text-sm font-medium hover:bg-gray-50 transition-colors"
+            >
+              Batal
+            </button>
+            <button
+              onClick={handleDeleteUser}
+              disabled={deleteLoading}
+              className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 disabled:opacity-60 text-white text-sm font-semibold transition-colors"
+            >
+              {deleteLoading ? "Menghapus..." : "Hapus"}
+            </button>
+          </div>
+        </AdminModal>
+      )}
+
       {detailUser && (
         <AdminModal
           title={`Riwayat — ${detailUser.name}`}
@@ -535,47 +742,39 @@ const AdminUsers = () => {
                 Belum ada laporan
               </p>
             ) : (
-              detailUser.reports.map((r) => {
-                const STATUS_COLOR = {
-                  Ditemukan: "bg-emerald-100 text-emerald-700",
-                  Hilang: "bg-red-100 text-red-600",
-                  Dikembalikan: "bg-sky-100 text-sky-700",
-                  Tersimpan: "bg-amber-100 text-amber-700",
-                };
-                return (
-                  <div
-                    key={r.id}
-                    className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl"
-                  >
-                    <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
-                      <img
-                        src={
-                          r.found_images?.[0]?.found_img_url ??
-                          "https://placehold.co/100?text=N%2FA"
-                        }
-                        alt=""
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.target.src = "https://placehold.co/100?text=N%2FA";
-                        }}
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-gray-800 font-medium text-sm truncate">
-                        {r.found_name}
-                      </p>
-                      <p className="text-gray-400 text-xs">
-                        {r.category?.name} · {r.room?.name_room}
-                      </p>
-                    </div>
-                    <span
-                      className={`text-xs px-2 py-1 rounded-full font-medium flex-shrink-0 ${STATUS_COLOR[r.status?.name] ?? "bg-gray-100 text-gray-600"}`}
-                    >
-                      {r.status?.name}
-                    </span>
+              detailUser.reports.map((r) => (
+                <div
+                  key={r.id}
+                  className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl"
+                >
+                  <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
+                    <img
+                      src={
+                        r.found_images?.[0]?.found_img_url ??
+                        "https://placehold.co/100?text=N%2FA"
+                      }
+                      alt=""
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.src = "https://placehold.co/100?text=N%2FA";
+                      }}
+                    />
                   </div>
-                );
-              })
+                  <div className="flex-1 min-w-0">
+                    <p className="text-gray-800 font-medium text-sm truncate">
+                      {r.found_name}
+                    </p>
+                    <p className="text-gray-400 text-xs">
+                      {r.category?.name} · {r.room?.name_room}
+                    </p>
+                  </div>
+                  <span
+                    className={`text-xs px-2 py-1 rounded-full font-medium flex-shrink-0 ${STATUS_COLOR[r.status?.name] ?? "bg-gray-100 text-gray-600"}`}
+                  >
+                    {r.status?.name}
+                  </span>
+                </div>
+              ))
             )}
           </div>
         </AdminModal>

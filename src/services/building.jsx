@@ -5,9 +5,12 @@ const getBuildings = () => {
   return api.get("/buildings/rooms");
 };
 
-const createBuilding = (payload) => {
-  return api.post("/buildings/create-building", payload);
-};
+const createBuilding = ({ building_name, description, rooms = [] }) =>
+  api.post("/buildings/create-building", {
+    building_name,
+    description,
+    rooms,
+  });
 
 const updateBuilding = (id, payload) => {
   return api.post(`/buildings/update-building/${id}`, payload);
@@ -18,12 +21,20 @@ const deleteBuilding = (id) => {
 };
 
 // room
-const createRoom = (payload) => {
-  return api.post("/buildings/create-room", payload);
+const createRoom = ({ building_id, name_room, room_description }) => {
+  return api.post("/buildings/create-room", {
+    building_id,
+    name_room: String(name_room),
+    room_description: String(room_description),
+  });
 };
 
-const updateRoom = (id, payload) => {
-  return api.post(`/buildings/update-room/${id}`, payload);
+const updateRoom = (id, { building_id, name_room, description }) => {
+  return api.post(`/buildings/update-room/${id}`, {
+    building_id,
+    name_room: String(name_room),
+    description: String(description),
+  });
 };
 
 const deleteRoom = (id) => {

@@ -28,13 +28,16 @@ const Profile = () => {
         setUser(currentUser);
 
         const allFounds = allReportsRes.data.data.founds ?? [];
-
         const myReports = allFounds.filter(
-          (f) => f.user_id === currentUser.data.id,
+          (f) => f.user_id === currentUser.data.data.id,
         );
+
         setTotalReports(myReports.length);
 
-        const foundCount = countFoundReports(allFounds, currentUser.data.id);
+        const foundCount = countFoundReports(
+          allFounds,
+          currentUser.data.data.id,
+        );
         setFoundReports(foundCount);
       } catch (error) {
         console.error("Failed to fetch profile data:", error);
