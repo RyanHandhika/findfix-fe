@@ -22,6 +22,7 @@ import Statistik from "./pages/Statistik.jsx";
 import Profile from "./pages/Profile.jsx";
 import TambahLaporan from "./pages/TambahLaporan.jsx";
 import Activity from "./pages/Activity.jsx";
+import Notifications from "./pages/Notifications.jsx";
 
 // admin
 import DashboardAdmin from "./pages/admin/DashboardAdmin.jsx";
@@ -30,6 +31,7 @@ import AdminBadge from "./pages/admin/AdminBadge.jsx";
 import AdminUsers from "./pages/admin/AdminUsers.jsx";
 import AdminBuilding from "./pages/admin/AdminBuilding.jsx";
 import AdminHubs from "./pages/admin/AdminHubs.jsx";
+import AdminNotifications from "./pages/admin/AdminNotifications.jsx";
 
 createRoot(document.getElementById("root")).render(
   <BrowserRouter>
@@ -51,6 +53,7 @@ createRoot(document.getElementById("root")).render(
           <Route path="admin/users" element={<AdminUsers />} />
           <Route path="admin/building" element={<AdminBuilding />} />
           <Route path="admin/hubs" element={<AdminHubs />} />
+          <Route path="admin/notifications" element={<AdminNotifications />} />
         </Route>
 
         {/* user */}
@@ -62,6 +65,7 @@ createRoot(document.getElementById("root")).render(
           <Route path="profile" element={<Profile />} />
           <Route path="tambah-laporan" element={<TambahLaporan />} />
           <Route path="activity" element={<Activity />} />
+          <Route path="notifications" element={<Notifications />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -5,13 +5,21 @@ import Header from "../components/Header";
 import { IoIosArrowForward } from "react-icons/io";
 import { logout, getMe } from "../services/auth";
 import { getAllReport } from "../services/report";
-import { BADGES, getBadge, countFoundReports } from "../services/badges";
+import { getBadges, countFoundReports } from "../services/badges";
+
+const NO_BADGE = {
+  name: "Nothing",
+  description: "Anda belum memiliki badge",
+  icon: "➖",
+  color: "bg-gray-200",
+};
 
 const Profile = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [totalReports, setTotalReports] = useState(0);
   const [foundReports, setFoundReports] = useState(0);
+  const [currentBadge, setCurrentBadge] = useState(NO_BADGE);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -19,9 +27,10 @@ const Profile = () => {
       try {
         setLoading(true);
 
-        const [userRes, allReportsRes] = await Promise.all([
+        const [userRes, allReportsRes, badgesRes] = await Promise.all([
           getMe(),
           getAllReport(),
+          getBadges(),
         ]);
 
         const currentUser = userRes;
@@ -39,6 +48,13 @@ const Profile = () => {
           currentUser.data.data.id,
         );
         setFoundReports(foundCount);
+
+        // Match badge from database badges
+        const dbBadges = badgesRes.data.data ?? [];
+        // Sort descending by min_found so highest tier matches first
+        const sorted = [...dbBadges].sort((a, b) => b.min_found - a.min_found);
+        const matched = sorted.find((b) => foundCount >= b.min_found);
+        setCurrentBadge(matched ? { ...matched, color: "bg-indigo-50" } : NO_BADGE);
       } catch (error) {
         console.error("Failed to fetch profile data:", error);
       } finally {
@@ -53,8 +69,6 @@ const Profile = () => {
     logout();
     navigate("/login");
   };
-
-  const currentBadge = getBadge(foundReports);
 
   return (
     <div className="bg-gradient-to-b from-[#4A3AFF] to-[#5B4CFF]">
@@ -127,3 +141,4 @@ const ProfileMenu = ({ icon, label, danger, onClick }) => (
 );
 
 export default Profile;
+

@@ -1,3 +1,27 @@
+import api from "./axios";
+
+const getBadges = () => {
+  return api.get("/badges/get-badges");
+};
+
+const getDetailBadge = (id) => {
+  return api.get(`/badges/get-badges/${id}`);
+};
+
+const createBadge = (payload) => {
+  return api.post("/badges/create-badge", payload);
+};
+
+const updateBadge = (id, payload) => {
+  return api.post(`/badges/update-badge/${id}`, payload);
+};
+
+const deleteBadge = (id) => {
+  return api.delete(`/badges/delete-badge/${id}`);
+};
+
+// --- Client-side badge utilities (used by Profile.jsx) ---
+
 export const BADGES = [
   {
     id: "super_find_hero",
@@ -37,15 +61,15 @@ const countFoundReports = (reports, userId) => {
   return reports.filter(
     (f) =>
       f.user_id === userId &&
-      (f.found_status_id === 3 || f.found_status_id === 4),
+      (f.found_status_id === 1 || f.found_status_id === 3 || f.found_status_id === 4),
   ).length;
 };
 
 const getBadge = (foundCount) => {
-  if (foundCount > 10) return BADGES[0]; // Super Find Hero
-  if (foundCount > 3) return BADGES[1]; // Honesty Hero
-  if (foundCount >= 1) return BADGES[2]; // Eagle Eye
-  return BADGES[3]; // Belum dapat badge
+  if (foundCount > 10) return BADGES[0];
+  if (foundCount > 3) return BADGES[1];
+  if (foundCount >= 1) return BADGES[2];
+  return BADGES[3];
 };
 
-export { countFoundReports, getBadge };
+export { getBadges, getDetailBadge, createBadge, updateBadge, deleteBadge, countFoundReports, getBadge };
