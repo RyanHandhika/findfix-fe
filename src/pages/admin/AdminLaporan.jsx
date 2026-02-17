@@ -31,8 +31,11 @@ const AdminLaporan = () => {
 
   // Modal states
   const [detailItem, setDetailItem] = useState(null);
+  const [detailHubLoading, setDetailHubLoading] = useState(false);
+  const [detailHubData, setDetailHubData] = useState(null);
   const [editItem, setEditItem] = useState(null);
   const [newStatusId, setNewStatusId] = useState("");
+  const [newHubId, setNewHubId] = useState("");
   const [updating, setUpdating] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
@@ -98,17 +101,61 @@ const AdminLaporan = () => {
     return () => clearTimeout(t);
   }, [fetchReports]);
 
+  // Fetch hub data when detail modal opens
+  useEffect(() => {
+    if (!detailItem?.location_hub_id) {
+      setDetailHubData(null);
+      return;
+    }
+
+    const fetchDetailHub = async () => {
+      setDetailHubLoading(true);
+      try {
+        const res = await api.get(
+          `/hubs/get-hubs/${detailItem.location_hub_id}`,
+        );
+        setDetailHubData(res.data.data);
+      } catch (err) {
+        console.error("Failed to fetch hub:", err);
+        setDetailHubData(null);
+      } finally {
+        setDetailHubLoading(false);
+      }
+    };
+
+    fetchDetailHub();
+  }, [detailItem?.location_hub_id]);
+
   const handleUpdateStatus = async () => {
     if (!newStatusId || !editItem) return;
+
+    // Validasi: jika status "Tersimpan" atau "Ditemukan", hub wajib dipilih
+    const statusName = statuses.find(
+      (s) => s.id.toString() === newStatusId,
+    )?.name;
+    if (
+      (statusName === "Tersimpan" || statusName === "Ditemukan") &&
+      !newHubId
+    ) {
+      alert(`Status "${statusName}" memerlukan lokasi hub penyimpanan.`);
+      return;
+    }
+
     setUpdating(true);
     try {
-      await api.post(`/founds/update-found/${editItem.id}`, {
+      const payload = {
         found_status_id: newStatusId,
-      });
+      };
+      if (newHubId) {
+        payload.location_hub_id = Number(newHubId);
+      }
+
+      await api.post(`/founds/update-found/${editItem.id}`, payload);
       setEditItem(null);
+      setNewHubId("");
       fetchReports();
-    } catch {
-      alert("Gagal mengubah status.");
+    } catch (err) {
+      alert(err?.response?.data?.message ?? "Gagal mengubah status.");
     } finally {
       setUpdating(false);
     }
@@ -198,6 +245,13 @@ const AdminLaporan = () => {
 
   const selectedReports = reports.filter((r) => selectedIds.includes(r.id));
   const canSubmit = selectedIds.length === 2 && !!selectedHubId;
+
+  // Check if selected status requires hub
+  const selectedStatusName = statuses.find(
+    (s) => s.id.toString() === newStatusId,
+  )?.name;
+  const requiresHub =
+    selectedStatusName === "Tersimpan" || selectedStatusName === "Ditemukan";
 
   return (
     <AdminLayout admin={admin} pageTitle="Manajemen Laporan">
@@ -528,6 +582,9 @@ const AdminLaporan = () => {
                                 setNewStatusId(
                                   item.found_status_id?.toString(),
                                 );
+                                setNewHubId(
+                                  item.location_hub_id?.toString() ?? "",
+                                );
                               }}
                               title="Ubah Status"
                               className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors text-sm"
@@ -614,7 +671,13 @@ const AdminLaporan = () => {
 
       {/* Modal Detail */}
       {detailItem && (
-        <AdminModal title="Detail Laporan" onClose={() => setDetailItem(null)}>
+        <AdminModal
+          title="Detail Laporan"
+          onClose={() => {
+            setDetailItem(null);
+            setDetailHubData(null);
+          }}
+        >
           {detailItem.found_images?.length > 0 && (
             <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
               {detailItem.found_images.map((img, i) => (
@@ -650,6 +713,33 @@ const AdminLaporan = () => {
                 </p>
               </div>
             ))}
+
+            {/* Hubspot - separate to handle loading state */}
+            <div className="bg-gray-50 rounded-xl p-3">
+              <p className="text-gray-400 text-xs mb-0.5">Hubspot</p>
+              {detailItem.location_hub_id ? (
+                detailHubLoading ? (
+                  <p className="text-gray-400 text-sm italic">Loading...</p>
+                ) : detailHubData ? (
+                  <div>
+                    <p className="text-gray-800 font-semibold text-sm">
+                      {detailHubData.hub_name}
+                    </p>
+                    {detailHubData.hub_description && (
+                      <p className="text-gray-500 text-xs mt-0.5">
+                        {detailHubData.hub_description}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-gray-400 text-sm italic">
+                    Tidak ditemukan
+                  </p>
+                )
+              ) : (
+                <p className="text-gray-800 font-semibold text-sm">-</p>
+              )}
+            </div>
           </div>
           <div className="bg-gray-50 rounded-xl p-3 mt-3">
             <p className="text-gray-400 text-xs mb-1">Deskripsi</p>
@@ -664,30 +754,75 @@ const AdminLaporan = () => {
       {editItem && (
         <AdminModal
           title="Ubah Status Laporan"
-          onClose={() => setEditItem(null)}
+          onClose={() => {
+            setEditItem(null);
+            setNewHubId("");
+          }}
         >
           <p className="text-gray-500 text-sm mb-4 truncate font-medium">
             {editItem.found_name}
           </p>
-          <div className="space-y-2 mb-5">
-            {statuses.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => setNewStatusId(s.id.toString())}
-                className={`w-full py-3 px-4 rounded-xl border text-sm font-medium text-left transition-all ${
-                  newStatusId === s.id.toString()
-                    ? "border-indigo-500 bg-indigo-50 text-indigo-700"
-                    : "border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100"
-                }`}
-              >
-                {newStatusId === s.id.toString() ? "● " : "○ "}
-                {s.name}
-              </button>
-            ))}
+
+          {/* Pilih Status */}
+          <div className="mb-5">
+            <label className="text-xs font-semibold text-gray-700 mb-2 block">
+              Status Laporan
+            </label>
+            <div className="space-y-2">
+              {statuses.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => setNewStatusId(s.id.toString())}
+                  className={`w-full py-3 px-4 rounded-xl border text-sm font-medium text-left transition-all ${
+                    newStatusId === s.id.toString()
+                      ? "border-indigo-500 bg-indigo-50 text-indigo-700"
+                      : "border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  {newStatusId === s.id.toString() ? "● " : "○ "}
+                  {s.name}
+                </button>
+              ))}
+            </div>
           </div>
+
+          {/* Pilih Hub - conditional */}
+          {(requiresHub || newHubId) && (
+            <div className="mb-5">
+              <label className="text-xs font-semibold text-gray-700 mb-2 block flex items-center gap-1">
+                📍 Lokasi Hub Penyimpanan
+                {requiresHub && <span className="text-red-500 text-xs">*</span>}
+              </label>
+              <select
+                value={newHubId}
+                onChange={(e) => setNewHubId(e.target.value)}
+                className={`w-full bg-white border rounded-xl py-2.5 px-3 text-sm outline-none transition-colors ${
+                  newHubId
+                    ? "border-indigo-400 text-gray-800"
+                    : "border-gray-200 text-gray-400"
+                } focus:border-indigo-500`}
+              >
+                <option value="">-- Pilih Hub --</option>
+                {hubs.map((hub) => (
+                  <option key={hub.id} value={hub.id}>
+                    {hub.name} · {hub.building} (R{hub.room})
+                  </option>
+                ))}
+              </select>
+              {requiresHub && !newHubId && (
+                <p className="text-red-500 text-xs mt-1">
+                  Status "{selectedStatusName}" memerlukan lokasi hub
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="flex gap-3">
             <button
-              onClick={() => setEditItem(null)}
+              onClick={() => {
+                setEditItem(null);
+                setNewHubId("");
+              }}
               className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium"
             >
               Batal

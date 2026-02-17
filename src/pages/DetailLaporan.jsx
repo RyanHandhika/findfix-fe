@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import Header from "../components/Header";
 import Navbar from "../components/Navbar";
 import { getReportById } from "../services/report";
+import { getDetailHubs } from "../services/hubs";
 
 const FALLBACK_IMAGE =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23e5e7eb'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='16' fill='%239ca3af'%3ENo Image%3C/text%3E%3C/svg%3E";
@@ -26,8 +27,8 @@ const formatDate = (d) => {
 const DetailLaporan = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-
   const [report, setReport] = useState(null);
+  const [hub, setHub] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -35,11 +36,23 @@ const DetailLaporan = () => {
 
   useEffect(() => {
     if (!id) return;
-    const fetchReport = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
         const res = await getReportById(id);
-        setReport(res.data.data);
+        const reportData = res.data.data;
+        setReport(reportData);
+
+        // Fetch hub jika ada location_hub_id
+        if (reportData.location_hub_id) {
+          try {
+            const hubRes = await getDetailHubs(reportData.location_hub_id);
+            setHub(hubRes.data.data);
+          } catch (hubErr) {
+            console.error("Hub tidak ditemukan:", hubErr);
+            setHub(null);
+          }
+        }
       } catch (e) {
         console.error(e);
         setError("Laporan tidak ditemukan.");
@@ -47,7 +60,7 @@ const DetailLaporan = () => {
         setLoading(false);
       }
     };
-    fetchReport();
+    fetchData();
   }, [id]);
 
   if (loading) {
@@ -203,7 +216,7 @@ const DetailLaporan = () => {
         </h2>
 
         {/* Info Grid */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-2 gap-4 mb-6">
           <div className="flex items-start gap-2">
             <svg
               className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0"
@@ -219,6 +232,7 @@ const DetailLaporan = () => {
               </p>
             </div>
           </div>
+
           <div className="flex items-start gap-2">
             <svg
               className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0"
@@ -238,6 +252,7 @@ const DetailLaporan = () => {
               </p>
             </div>
           </div>
+
           <div className="flex items-start gap-2">
             <svg
               className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0"
@@ -253,11 +268,45 @@ const DetailLaporan = () => {
             <div className="min-w-0">
               <p className="text-xs text-gray-500">Lokasi</p>
               <p className="text-sm font-medium text-black">
-                R{report.room?.name_room}
+                R{report.room?.name_room ?? "-"}
               </p>
               <p className="text-xs text-gray-400">
-                {report.room?.building?.building_name}
+                {report.room?.building?.building_name ?? "-"}
               </p>
+            </div>
+          </div>
+
+          {/* Hub Info - selalu tampil */}
+          <div className="flex items-start gap-2">
+            <svg
+              className="w-5 h-5 text-indigo-500 mt-0.5 flex-shrink-0"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+            </svg>
+            <div className="min-w-0">
+              <p className="text-xs text-gray-500">Hubspot</p>
+              {report.location_hub_id ? (
+                hub ? (
+                  <>
+                    <p className="text-sm font-medium text-black">
+                      {hub.hub_name}
+                    </p>
+                    {hub.hub_description && (
+                      <p className="text-xs text-gray-400">
+                        {hub.hub_description}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-sm font-medium text-gray-400 italic">
+                    Loading...
+                  </p>
+                )
+              ) : (
+                <p className="text-sm font-medium text-black">-</p>
+              )}
             </div>
           </div>
         </div>

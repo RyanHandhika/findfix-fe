@@ -228,7 +228,7 @@ const Laporan = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#4A3AFF]">
+    <div className="min-h-screen bg-gradient-to-b from-[#4A3AFF] to-[#4A3AFF]">
       <Header />
 
       <div className="bg-[#F3F7FF] rounded-t-[32px] mt-6 px-4 pt-6 pb-28 min-h-screen">

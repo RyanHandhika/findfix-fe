@@ -4,20 +4,19 @@ import { logout } from "../../services/auth";
 
 const NAV_ITEMS = [
   { path: "/dashboard", icon: "📖", label: "Overview" },
-  { path: "/admin/laporan", icon: "📋", label: "Laporan" },
-  { path: "/admin/badge", icon: "🏆", label: "Badge" },
+  { path: "/admin/laporan", icon: "📋", label: "Reports" },
+  { path: "/admin/badge", icon: "🏆", label: "Badges" },
   { path: "/admin/users", icon: "👥", label: "Users" },
   { path: "/admin/building", icon: "🏛️", label: "Building" },
+  { path: "/admin/hubs", icon: "📍", label: "HubSpots" },
 ];
 
 const AdminLayout = ({ children, admin, pageTitle }) => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
-  // Mobile drawer state — desktop tidak terpengaruh
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Tutup drawer saat resize ke desktop
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth >= 1024) setMobileOpen(false);
@@ -33,10 +32,9 @@ const AdminLayout = ({ children, admin, pageTitle }) => {
 
   const handleNav = (path) => {
     navigate(path);
-    setMobileOpen(false); // tutup drawer mobile setelah navigasi
+    setMobileOpen(false);
   };
 
-  // Konten sidebar (dipakai di desktop & mobile drawer)
   const SidebarContent = () => (
     <>
       {/* Logo */}
@@ -68,7 +66,6 @@ const AdminLayout = ({ children, admin, pageTitle }) => {
         })}
       </nav>
 
-      {/* Admin Info + Logout */}
       <div className="p-3 border-t border-gray-100 flex-shrink-0">
         <div className="flex items-center gap-3 p-2 rounded-xl bg-gray-50">
           <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm flex-shrink-0">
@@ -94,17 +91,9 @@ const AdminLayout = ({ children, admin, pageTitle }) => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* ══ DESKTOP SIDEBAR ══════════════════════════════════════════════════
-          Selalu tampil di desktop (lg+), tidak bisa di-hide.
-          Static — tidak overlay, mendorong konten ke kanan.
-      ════════════════════════════════════════════════════════════════════════ */}
       <aside className="hidden lg:flex w-64 flex-shrink-0 bg-white border-r border-gray-100 flex-col h-screen sticky top-0">
         <SidebarContent />
       </aside>
-
-      {/* ══ MOBILE DRAWER ════════════════════════════════════════════════════
-          Hanya muncul di mobile (<lg), sebagai overlay drawer.
-      ════════════════════════════════════════════════════════════════════════ */}
 
       {/* Backdrop */}
       {mobileOpen && (
@@ -127,15 +116,10 @@ const AdminLayout = ({ children, admin, pageTitle }) => {
         <SidebarContent />
       </aside>
 
-      {/* ══ MAIN CONTENT ═════════════════════════════════════════════════════
-          Desktop: mengisi sisa ruang di sebelah sidebar.
-          Mobile:  full width.
-      ════════════════════════════════════════════════════════════════════════ */}
       <div className="flex-1 flex flex-col min-w-0 min-h-screen">
         {/* Top Bar */}
         <header className="bg-white border-b border-gray-100 px-4 lg:px-8 py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm">
           <div className="flex items-center gap-3">
-            {/* Hamburger — hanya tampil di mobile */}
             <button
               onClick={() => setMobileOpen(true)}
               className="w-9 h-9 rounded-xl bg-gray-50 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors lg:hidden"

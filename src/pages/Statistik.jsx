@@ -55,7 +55,7 @@ const CustomTooltip = ({ active, payload, label }) => {
             {p.value}
           </span>
           <span className="text-gray-400">
-            {p.dataKey === "hilang" ? "Hilang" : "Ditemukan"}
+            {p.dataKey === "hilang" ? "Hilang" : "Dikembalikan"}
           </span>
         </div>
       ))}
@@ -122,11 +122,11 @@ const Statistik = () => {
     (acc, d) => (d.hilang > acc.hilang ? d : acc),
     { month: "-", hilang: 0 },
   );
-  const peakDitemukan = lineData.reduce(
-    (acc, d) => (d.ditemukan > acc.ditemukan ? d : acc),
-    { month: "-", ditemukan: 0 },
+  const peakDikembalikan = lineData.reduce(
+    (acc, d) => (d.dikembalikan > acc.dikembalikan ? d : acc),
+    { month: "-", dikembalikan: 0 },
   );
-  const allZero = lineData.every((d) => d.hilang === 0 && d.ditemukan === 0);
+  const allZero = lineData.every((d) => d.hilang === 0 && d.dikembalikan === 0);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -142,7 +142,7 @@ const Statistik = () => {
         const builtLineData = MONTHS.map((month, i) => ({
           month,
           hilang: lost[String(i + 1)] ?? 0,
-          ditemukan: ret[String(i + 1)] ?? 0,
+          dikembalikan: ret[String(i + 1)] ?? 0,
         }));
         setLineData(builtLineData);
         setMonthlyRaw(builtLineData);
@@ -167,12 +167,15 @@ const Statistik = () => {
         total: totalAll,
       };
     } else {
-      const thisMonth = monthlyRaw[currentMonth] ?? { hilang: 0, ditemukan: 0 };
+      const thisMonth = monthlyRaw[currentMonth] ?? {
+        hilang: 0,
+        dikembalikan: 0,
+      };
       const counts = {
         Hilang: thisMonth.hilang,
-        Ditemukan: thisMonth.ditemukan,
+        Dikembalikan: thisMonth.dikembalikan,
       };
-      const total = thisMonth.hilang + thisMonth.ditemukan;
+      const total = thisMonth.hilang + thisMonth.dikembalikan;
       return { counts, total };
     }
   };
@@ -197,7 +200,7 @@ const Statistik = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#4A3AFF] pb-20">
+    <div className="min-h-screen bg-gradient-to-b from-[#4A3AFF] to-[#4A3AFF] pb-20">
       <Header />
 
       <div className="bg-gray-100 rounded-t-[35px] mt-5 px-5 py-6 min-h-screen space-y-5">
@@ -214,7 +217,7 @@ const Statistik = () => {
             <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">
               Perbandingan laporan barang{" "}
               <span className="text-red-400 font-medium">hilang</span> dan{" "}
-              <span className="text-emerald-500 font-medium">ditemukan</span>{" "}
+              <span className="text-blue-500 font-medium">dikembalikan</span>{" "}
               setiap bulan di tahun {new Date().getFullYear()}.
             </p>
           </div>
@@ -226,8 +229,8 @@ const Statistik = () => {
               <span className="text-xs text-gray-500">Hilang</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-6 h-0.5 bg-emerald-500 inline-block rounded" />
-              <span className="text-xs text-gray-500">Ditemukan</span>
+              <span className="w-6 h-0.5 bg-blue-500 inline-block rounded" />
+              <span className="text-xs text-gray-500">Dikembalikan</span>
             </div>
           </div>
 
@@ -244,14 +247,14 @@ const Statistik = () => {
                   </p>
                 </div>
               )}
-              {peakDitemukan.ditemukan > 0 && (
-                <div className="bg-emerald-50 rounded-xl px-3 py-2 flex items-center gap-2">
+              {peakDikembalikan.dikembalikan > 0 && (
+                <div className="bg-blue-50 rounded-xl px-3 py-2 flex items-center gap-2">
                   <span className="text-base">📌</span>
-                  <p className="text-xs text-emerald-600">
-                    Ditemukan terbanyak:{" "}
-                    <span className="font-bold">{peakDitemukan.month}</span>{" "}
+                  <p className="text-xs text-blue-600">
+                    Dikembalikan terbanyak:{" "}
+                    <span className="font-bold">{peakDikembalikan.month}</span>{" "}
                     <span className="font-bold">
-                      ({peakDitemukan.ditemukan})
+                      ({peakDikembalikan.dikembalikan})
                     </span>
                   </p>
                 </div>
@@ -294,10 +297,10 @@ const Statistik = () => {
                 />
                 <Line
                   type="monotone"
-                  dataKey="ditemukan"
-                  stroke="#22C55E"
+                  dataKey="dikembalikan"
+                  stroke="#3B82F6"
                   strokeWidth={2.5}
-                  dot={{ fill: "#22C55E", r: 3 }}
+                  dot={{ fill: "#3B82F6", r: 3 }}
                   activeDot={{ r: 5 }}
                 />
               </LineChart>
@@ -305,7 +308,7 @@ const Statistik = () => {
           )}
         </div>
 
-        {/* pie chat */}
+        {/* pie chart */}
         <div className="bg-white rounded-2xl p-4 shadow-sm">
           {/* Header + filter dropdown */}
           <div className="flex items-start justify-between mb-1">

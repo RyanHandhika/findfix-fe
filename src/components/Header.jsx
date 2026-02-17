@@ -12,7 +12,7 @@ const Header = () => {
   }, []);
 
   return (
-    <header className="bg-gradient-to-b from-[#4A3AFF] to-[#5B4CFF] px-5 py-6 flex justify-between items-center text-white">
+    <header className="px-5 py-6 flex justify-between items-center text-white">
       <div className="flex items-center gap-4">
         <div className="w-14 h-14 rounded-full bg-gray-200 overflow-hidden">
           <img

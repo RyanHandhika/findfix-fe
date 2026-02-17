@@ -22,12 +22,14 @@ import Statistik from "./pages/Statistik.jsx";
 import Profile from "./pages/Profile.jsx";
 import TambahLaporan from "./pages/TambahLaporan.jsx";
 import Activity from "./pages/Activity.jsx";
+
 // admin
 import DashboardAdmin from "./pages/admin/DashboardAdmin.jsx";
 import AdminLaporan from "./pages/admin/AdminLaporan.jsx";
 import AdminBadge from "./pages/admin/AdminBadge.jsx";
 import AdminUsers from "./pages/admin/AdminUsers.jsx";
 import AdminBuilding from "./pages/admin/AdminBuilding.jsx";
+import AdminHubs from "./pages/admin/AdminHubs.jsx";
 
 createRoot(document.getElementById("root")).render(
   <BrowserRouter>
@@ -48,6 +50,7 @@ createRoot(document.getElementById("root")).render(
           <Route path="admin/badge" element={<AdminBadge />} />
           <Route path="admin/users" element={<AdminUsers />} />
           <Route path="admin/building" element={<AdminBuilding />} />
+          <Route path="admin/hubs" element={<AdminHubs />} />
         </Route>
 
         {/* user */}
