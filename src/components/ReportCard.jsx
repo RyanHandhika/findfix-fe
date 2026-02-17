@@ -49,11 +49,13 @@ function ReportCard({
   status,
   statusColor,
   borderColor,
+  onClick,
 }) {
   return (
     <div
-      className="bg-white rounded-2xl p-5 shadow-md mb-4"
+      className={`bg-white rounded-2xl p-5 shadow-md mb-4 ${onClick ? "cursor-pointer hover:shadow-lg active:scale-[0.98] transition-all" : ""}`}
       style={{ borderLeft: `4px solid ${borderColor}` }}
+      onClick={onClick}
     >
       <div className="flex items-center gap-3 mb-4">
         <Avatar name={name} src={avatar} />
@@ -85,11 +87,10 @@ function ReportCard({
       </p>
 
       <div
-        className={`inline-block px-3 py-1.5 rounded-full text-xs font-semibold ${
-          statusColor === "red"
+        className={`inline-block px-3 py-1.5 rounded-full text-xs font-semibold ${statusColor === "red"
             ? "bg-red-50 text-red-500"
             : "bg-green-50 text-green-500"
-        }`}
+          }`}
       >
         ● STATUS : {status}
       </div>
