@@ -1,8 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AdminLayout from "../../components/admin/AdminLayout";
 import AdminModal from "../../components/admin/AdminModal";
 import { getMe } from "../../services/auth";
-import { useEffect } from "react";
+import {
+  getBadges,
+  createBadge,
+  updateBadge,
+  deleteBadge,
+} from "../../services/badges";
 
 const ICON_OPTIONS = [
   "🎖️",
@@ -19,33 +24,9 @@ const ICON_OPTIONS = [
   "⚡",
 ];
 
-const DEFAULT_BADGES = [
-  {
-    id: 1,
-    name: "Eagle Eye",
-    description: "Orang pertama yang melaporkan di lokasi tertentu",
-    icon: "👁️",
-    min_found: 1,
-  },
-  {
-    id: 2,
-    name: "Honesty Hero",
-    description: "Menemukan lebih dari 3 barang",
-    icon: "⭐",
-    min_found: 3,
-  },
-  {
-    id: 3,
-    name: "Super Find Hero",
-    description: "Menemukan lebih dari 10 barang",
-    icon: "🏆",
-    min_found: 10,
-  },
-];
-
 const EMPTY_FORM = { name: "", description: "", icon: "🎖️", min_found: "" };
 
-const BadgeForm = ({ data, onChange, onSubmit, onCancel, submitLabel }) => (
+const BadgeForm = ({ data, onChange, onSubmit, onCancel, submitLabel, loading }) => (
   <div className="space-y-4">
     {/* Icon picker */}
     <div>
@@ -58,11 +39,10 @@ const BadgeForm = ({ data, onChange, onSubmit, onCancel, submitLabel }) => (
             key={icon}
             type="button"
             onClick={() => onChange({ ...data, icon })}
-            className={`w-10 h-10 rounded-xl text-xl border transition-all ${
-              data.icon === icon
+            className={`w-10 h-10 rounded-xl text-xl border transition-all ${data.icon === icon
                 ? "border-indigo-500 bg-indigo-50"
                 : "border-gray-200 bg-gray-50 hover:bg-gray-100"
-            }`}
+              }`}
           >
             {icon}
           </button>
@@ -109,16 +89,18 @@ const BadgeForm = ({ data, onChange, onSubmit, onCancel, submitLabel }) => (
       <button
         type="button"
         onClick={onCancel}
-        className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors"
+        disabled={loading}
+        className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors disabled:opacity-50"
       >
         Batal
       </button>
       <button
         type="button"
         onClick={onSubmit}
-        className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors"
+        disabled={loading}
+        className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-50"
       >
-        {submitLabel}
+        {loading ? "Loading..." : submitLabel}
       </button>
     </div>
   </div>
@@ -126,40 +108,83 @@ const BadgeForm = ({ data, onChange, onSubmit, onCancel, submitLabel }) => (
 
 const AdminBadge = () => {
   const [admin, setAdmin] = useState(null);
-  const [badges, setBadges] = useState(DEFAULT_BADGES);
+  const [badges, setBadges] = useState([]);
   const [showAdd, setShowAdd] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [loading, setLoading] = useState(false);
+
+  const fetchBadges = async () => {
+    try {
+      const res = await getBadges();
+      setBadges(res.data.data);
+    } catch (err) {
+      console.error("Gagal fetch badges:", err);
+    }
+  };
 
   useEffect(() => {
     getMe()
       .then((res) => setAdmin(res.data.data))
       .catch(console.error);
+    fetchBadges();
   }, []);
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!form.name || !form.description || !form.min_found) {
       alert("Semua field wajib diisi");
       return;
     }
-    setBadges([
-      ...badges,
-      { ...form, id: Date.now(), min_found: parseInt(form.min_found) },
-    ]);
-    setForm(EMPTY_FORM);
-    setShowAdd(false);
+    setLoading(true);
+    try {
+      await createBadge({
+        ...form,
+        min_found: parseInt(form.min_found),
+      });
+      setForm(EMPTY_FORM);
+      setShowAdd(false);
+      await fetchBadges();
+    } catch (err) {
+      console.error("Gagal membuat badge:", err);
+      alert("Gagal membuat badge");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleEdit = () => {
+  const handleEdit = async () => {
     if (!editTarget) return;
-    setBadges(badges.map((b) => (b.id === editTarget.id ? editTarget : b)));
-    setEditTarget(null);
+    setLoading(true);
+    try {
+      await updateBadge(editTarget.id, {
+        name: editTarget.name,
+        description: editTarget.description,
+        icon: editTarget.icon,
+        min_found: parseInt(editTarget.min_found),
+      });
+      setEditTarget(null);
+      await fetchBadges();
+    } catch (err) {
+      console.error("Gagal mengubah badge:", err);
+      alert("Gagal mengubah badge");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDelete = () => {
-    setBadges(badges.filter((b) => b.id !== deleteTarget.id));
-    setDeleteTarget(null);
+  const handleDelete = async () => {
+    setLoading(true);
+    try {
+      await deleteBadge(deleteTarget.id);
+      setDeleteTarget(null);
+      await fetchBadges();
+    } catch (err) {
+      console.error("Gagal menghapus badge:", err);
+      alert("Gagal menghapus badge");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -253,6 +278,7 @@ const AdminBadge = () => {
             onSubmit={handleAdd}
             onCancel={() => setShowAdd(false)}
             submitLabel="Tambah Badge"
+            loading={loading}
           />
         </AdminModal>
       )}
@@ -266,6 +292,7 @@ const AdminBadge = () => {
             onSubmit={handleEdit}
             onCancel={() => setEditTarget(null)}
             submitLabel="Simpan Perubahan"
+            loading={loading}
           />
         </AdminModal>
       )}
@@ -286,15 +313,17 @@ const AdminBadge = () => {
           <div className="flex gap-3">
             <button
               onClick={() => setDeleteTarget(null)}
-              className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium"
+              disabled={loading}
+              className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium disabled:opacity-50"
             >
               Batal
             </button>
             <button
               onClick={handleDelete}
-              className="flex-1 py-2.5 bg-red-500 text-white rounded-xl text-sm font-semibold hover:bg-red-600 transition-colors"
+              disabled={loading}
+              className="flex-1 py-2.5 bg-red-500 text-white rounded-xl text-sm font-semibold hover:bg-red-600 transition-colors disabled:opacity-50"
             >
-              Hapus
+              {loading ? "Menghapus..." : "Hapus"}
             </button>
           </div>
         </AdminModal>
