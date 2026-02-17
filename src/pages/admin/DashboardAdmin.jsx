@@ -3,12 +3,20 @@ import { useNavigate } from "react-router-dom";
 import AdminLayout from "../../components/admin/AdminLayout";
 import { getReportStats, getAllReport } from "../../services/report";
 import { getMe } from "../../services/auth";
+import { getNotifications, markAsRead } from "../../services/notifications";
 
 const STATUS_STYLE = {
   Ditemukan: { bg: "bg-emerald-100 text-emerald-700", dot: "bg-emerald-500" },
   Hilang: { bg: "bg-red-100 text-red-700", dot: "bg-red-500" },
   Dikembalikan: { bg: "bg-sky-100 text-sky-700", dot: "bg-sky-500" },
   Tersimpan: { bg: "bg-amber-100 text-amber-700", dot: "bg-amber-500" },
+};
+
+const NOTIF_TYPE_STYLE = {
+  info: { bg: "bg-blue-500", ring: "ring-blue-100" },
+  success: { bg: "bg-emerald-500", ring: "ring-emerald-100" },
+  warning: { bg: "bg-amber-500", ring: "ring-amber-100" },
+  error: { bg: "bg-red-500", ring: "ring-red-100" },
 };
 
 const formatDate = (d) => {
@@ -18,6 +26,19 @@ const formatDate = (d) => {
     month: "short",
     year: "numeric",
   });
+};
+
+const timeAgo = (date) => {
+  const now = new Date();
+  const past = new Date(date);
+  const diff = Math.floor((now - past) / 1000);
+  const mins = Math.floor(diff / 60);
+  const hrs = Math.floor(diff / 3600);
+  const days = Math.floor(diff / 86400);
+  if (mins < 1) return "Baru saja";
+  if (mins < 60) return `${mins}m lalu`;
+  if (hrs < 24) return `${hrs}h lalu`;
+  return `${days}d lalu`;
 };
 
 const StatCard = ({ label, count, icon, color }) => (
@@ -32,24 +53,57 @@ const StatCard = ({ label, count, icon, color }) => (
   </div>
 );
 
+const NotifIcon = ({ type }) => {
+  const cls = "w-4 h-4 text-white";
+  switch (type) {
+    case "success":
+      return (
+        <svg className={cls} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+        </svg>
+      );
+    case "warning":
+      return (
+        <svg className={cls} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+        </svg>
+      );
+    case "error":
+      return (
+        <svg className={cls} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      );
+    default:
+      return (
+        <svg className={cls} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+        </svg>
+      );
+  }
+};
+
 const DashboardAdmin = () => {
   const navigate = useNavigate();
   const [admin, setAdmin] = useState(null);
   const [stats, setStats] = useState({});
   const [reports, setReports] = useState([]);
+  const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [userRes, statsRes, reportsRes] = await Promise.all([
+        const [userRes, statsRes, reportsRes, notifsRes] = await Promise.all([
           getMe(),
           getReportStats(),
           getAllReport(),
+          getNotifications(),
         ]);
         setAdmin(userRes.data.data);
         setStats(statsRes.data.data);
         setReports((reportsRes.data.data.founds ?? []).slice(0, 8));
+        setNotifications((notifsRes.data.data.data ?? []).slice(0, 5));
       } catch (e) {
         console.error(e);
       } finally {
@@ -58,6 +112,24 @@ const DashboardAdmin = () => {
     };
     fetchData();
   }, []);
+
+  const handleNotifClick = async (notif) => {
+    try {
+      if (!notif.read_at) {
+        await markAsRead(notif.id);
+        setNotifications((prev) =>
+          prev.map((n) =>
+            n.id === notif.id ? { ...n, read_at: new Date().toISOString() } : n,
+          ),
+        );
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    if (notif.data?.action_url) {
+      navigate("/admin/laporan");
+    }
+  };
 
   if (loading) {
     return (
@@ -108,6 +180,65 @@ const DashboardAdmin = () => {
               <StatCard key={s.label} {...s} />
             ))}
           </div>
+        </div>
+
+        {/* Notifications Panel */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-widest">
+              Notifikasi Terbaru
+            </h2>
+            {notifications.length > 0 && (
+              <span className="text-xs text-gray-400">
+                {notifications.filter((n) => !n.read_at).length} belum dibaca
+              </span>
+            )}
+          </div>
+
+          {notifications.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center shadow-sm">
+              <div className="w-12 h-12 mx-auto mb-3 bg-gray-100 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+              </div>
+              <p className="text-gray-400 text-sm">Belum ada notifikasi</p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm divide-y divide-gray-50">
+              {notifications.map((notif) => {
+                const style = NOTIF_TYPE_STYLE[notif.data?.type] ?? NOTIF_TYPE_STYLE.info;
+                const isUnread = !notif.read_at;
+
+                return (
+                  <button
+                    key={notif.id}
+                    onClick={() => handleNotifClick(notif)}
+                    className={`w-full text-left px-5 py-4 flex items-start gap-3 hover:bg-gray-50 transition-colors ${isUnread ? "bg-indigo-50/30" : ""
+                      }`}
+                  >
+                    <div className={`w-9 h-9 rounded-xl ${style.bg} flex items-center justify-center flex-shrink-0 ring-4 ${style.ring}`}>
+                      <NotifIcon type={notif.data?.type} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className={`text-sm truncate ${isUnread ? "font-semibold text-gray-800" : "font-medium text-gray-600"}`}>
+                          {notif.data?.title ?? "Notifikasi"}
+                        </p>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <span className="text-xs text-gray-400">{timeAgo(notif.created_at)}</span>
+                          {isUnread && <span className="w-2 h-2 rounded-full bg-indigo-500" />}
+                        </div>
+                      </div>
+                      <p className="text-gray-500 text-xs mt-0.5 line-clamp-1">
+                        {notif.data?.message}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Quick Actions */}
