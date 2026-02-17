@@ -5,6 +5,7 @@ import { logout } from "../../services/auth";
 const NAV_ITEMS = [
   { path: "/dashboard", icon: "📖", label: "Overview" },
   { path: "/admin/laporan", icon: "📋", label: "Reports" },
+  { path: "/admin/notifications", icon: "🔔", label: "Notifications" },
   { path: "/admin/badge", icon: "🏆", label: "Badges" },
   { path: "/admin/users", icon: "👥", label: "Users" },
   { path: "/admin/building", icon: "🏛️", label: "Building" },
@@ -53,11 +54,10 @@ const AdminLayout = ({ children, admin, pageTitle }) => {
             <button
               key={item.path}
               onClick={() => handleNav(item.path)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left ${
-                isActive
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left ${isActive
                   ? "bg-indigo-600 text-white shadow-sm shadow-indigo-200"
                   : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
-              }`}
+                }`}
             >
               <span className="text-lg flex-shrink-0">{item.icon}</span>
               <span className="text-sm font-medium">{item.label}</span>
