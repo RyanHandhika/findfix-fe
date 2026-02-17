@@ -5,6 +5,24 @@ import ReportCard from "../components/ReportCard";
 import Navbar from "../components/Navbar";
 import { getReportStats, getNewestReport } from "../services/report";
 
+const SearchIcon = () => (
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+  </svg>
+);
+
+const PlusIcon = () => (
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+  </svg>
+);
+
+const ClockIcon = () => (
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
 const Home = () => {
   const navigate = useNavigate();
   const [stats, setStats] = useState([]);
@@ -74,28 +92,32 @@ const Home = () => {
 
   const menuItems = [
     {
-      icon: "🔍",
+      icon: <SearchIcon />,
       label: "Cari",
-      color: "bg-yellow-50",
+      color: "bg-amber-50 text-amber-600",
       onClick: handleSearchClick,
     },
     {
-      icon: "➕",
+      icon: <PlusIcon />,
       label: "Laporan",
-      color: "bg-blue-50",
+      color: "bg-indigo-50 text-indigo-600",
       onClick: () => navigate("/tambah-laporan"),
     },
     {
-      icon: "🕐",
+      icon: <ClockIcon />,
       label: "Aktivitas",
-      color: "bg-purple-50",
+      color: "bg-purple-50 text-purple-600",
       onClick: () => navigate("/activity"),
     },
   ];
 
   const EmptyReport = ({ message }) => (
     <div className="bg-white rounded-2xl p-5 text-center border border-dashed border-gray-200">
-      <p className="text-2xl mb-1">📭</p>
+      <div className="w-12 h-12 mx-auto mb-2 bg-gray-100 rounded-full flex items-center justify-center">
+        <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m6 4.125l2.25 2.25m0 0l2.25 2.25M12 13.875l2.25-2.25M12 13.875l-2.25 2.25M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+        </svg>
+      </div>
       <p className="text-gray-400 text-sm">{message}</p>
     </div>
   );
@@ -116,7 +138,7 @@ const Home = () => {
                 className="flex-1 bg-white rounded-2xl p-5 shadow-md flex flex-col items-center gap-3 active:scale-95 transition-transform"
               >
                 <div
-                  className={`w-12 h-12 ${item.color} rounded-xl flex items-center justify-center text-2xl`}
+                  className={`w-12 h-12 ${item.color} rounded-xl flex items-center justify-center`}
                 >
                   {item.icon}
                 </div>
@@ -176,6 +198,7 @@ const Home = () => {
               status="HILANG"
               statusColor="red"
               borderColor="#EF4444"
+              onClick={() => navigate(`/laporan/${newestLost.id}`)}
             />
           ) : (
             <EmptyReport message="Tidak ada laporan kehilangan saat ini" />
@@ -210,6 +233,7 @@ const Home = () => {
               status="DITEMUKAN"
               statusColor="green"
               borderColor="#22C55E"
+              onClick={() => navigate(`/laporan/${newestFound.id}`)}
             />
           ) : (
             <EmptyReport message="Tidak ada barang ditemukan saat ini" />
