@@ -66,9 +66,3 @@ Aplikasi akan berjalan di `http://localhost:5173` (port default Vite). Browser a
 ### User Account
 - **Email:** user@student.unikom.ac.id
 - **Password:** user123
-
-## 📝 Catatan Penting
-
-- **Model AI/ML:** Project ini tidak mengimplementasikan model AI/ML.
-- **Backend:** Aplikasi ini memerlukan backend API untuk berfungsi penuh. Repository backend terpisah.
-- **Browser Support:** Disarankan menggunakan browser modern (Chrome, Firefox, Edge, Safari versi terbaru).
