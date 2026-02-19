@@ -1,25 +1,74 @@
-# React + Vite
+# FindFix (Smart Lost Item Reporting Platform)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## 📋 Deskripsi Singkat Aplikasi
 
-Currently, two official plugins are available:
+**FindFix** adalah aplikasi web yang memudahkan warga kampus Unikom untuk melaporkan barang hilang atau barang yang ditemukan di area kampus. Aplikasi ini menyediakan fitur pencarian barang, pelaporan dengan foto, manajemen hub penyimpanan barang, dan dashboard admin untuk verifikasi dan pencocokan laporan.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+**Fitur Utama:**
+- 🔍 Pencarian dan filter laporan barang (berdasarkan kategori, lokasi, status)
+- 📝 Pelaporan barang hilang dan ditemukan dengan upload foto
+- 🏆 Sistem badge/achievement untuk pengguna aktif
+- 📊 Dashboard statistik untuk admin
+- 📦 Manajemen hub penyimpanan barang
+- 🔐 Autentikasi dan otorisasi (User & Admin)
 
-## React Compiler
+**Tech Stack:**
+- React.js 18
+- Vite
+- TailwindCSS
+- React Router DOM
+- Axios
+- Recharts (untuk visualisasi data)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## 🛠️ Petunjuk Setup Environment
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### Prerequisites
 
-## Grouping Tokens Github
+Pastikan sistem Anda telah terinstal:
+- **Node.js** versi 18.x atau lebih baru
+- **npm** versi 9.x atau lebih baru (sudah termasuk dalam instalasi Node.js)
+- **Git** untuk clone repository
 
-| Branch Name   | Details                                           | Example Usage                 |
-| ------------- | ------------------------------------------------- | ----------------------------- |
-| `feat`        | Feature I'm adding or expanding                   | `feat/onboarding`             |
-| `bug`         | Bug fix or expirement                             | `bug/onboarding`              |
-| `junk`        | Throwaway branch created to experiment            | `junk/onboarding`             |
-| `development` | Main branch for feat, bug, junk                   | `development/onboardingFinal` |
+### Langkah-langkah Setup
+
+#### 1. Clone Repository
+```bash
+git clone https://github.com/RyanHandhika/findfix-fe.git
+cd findfix-fe
+```
+
+#### 2. Install Dependencies
+```bash
+npm install
+```
+
+## 🚀 Cara Menjalankan Aplikasi
+
+### Development Mode
+
+Untuk menjalankan aplikasi dalam mode development dengan hot-reload:
+```bash
+npm run dev
+```
+
+Aplikasi akan berjalan di `http://localhost:5173` (port default Vite). Browser akan otomatis membuka atau Anda bisa mengaksesnya secara manual.
+
+**Catatan:** Pastikan backend API sudah berjalan terlebih dahulu di `http://localhost:8000`.
+
+## 👤 Akun Default untuk Testing
+
+### Admin Account
+- **Email:** admin@unikom.ac.id
+- **Password:** admin123
+
+### User Account
+- **Email:** user@student.unikom.ac.id
+- **Password:** user123
+
+## 📝 Catatan Penting
+
+- **Model AI/ML:** Project ini tidak mengimplementasikan model AI/ML.
+- **Backend:** Aplikasi ini memerlukan backend API untuk berfungsi penuh. Repository backend terpisah.
+- **Browser Support:** Disarankan menggunakan browser modern (Chrome, Firefox, Edge, Safari versi terbaru).
